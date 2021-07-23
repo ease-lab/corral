@@ -32,7 +32,9 @@ type testWCJob struct{}
 
 func (testWCJob) Map(key, value string, emitter Emitter) {
 	for _, word := range strings.Fields(value) {
-		emitter.Emit(word, "1")
+		if err := emitter.Emit(word, "1"); err != nil {
+			panic(err)
+		}
 	}
 }
 
@@ -41,7 +43,9 @@ func (testWCJob) Reduce(key string, values ValueIterator, emitter Emitter) {
 	for range values.Iter() {
 		count++
 	}
-	emitter.Emit(key, fmt.Sprintf("%d", count))
+	if err := emitter.Emit(key, fmt.Sprintf("%d", count)); err != nil {
+		panic(err)
+	}
 }
 
 type testFilterJob struct {
@@ -50,16 +54,19 @@ type testFilterJob struct {
 
 func (j *testFilterJob) Map(key, value string, emitter Emitter) {
 	if strings.HasPrefix(key, j.prefix) {
-		emitter.Emit(key, value)
+		if err := emitter.Emit(key, value); err != nil {
+			panic(err)
+		}
 	}
 }
 
 func (j *testFilterJob) Reduce(key string, values ValueIterator, emitter Emitter) {
 	// Identity reducer
 	for value := range values.Iter() {
-		emitter.Emit(key, value)
+		if err := emitter.Emit(key, value); err != nil {
+			panic(err)
+		}
 	}
-
 }
 
 func testOutputToKeyValues(output string) []keyValue {
@@ -85,7 +92,7 @@ func TestLocalMapReduce(t *testing.T) {
 	defer os.RemoveAll(tmpdir)
 
 	inputPath := filepath.Join(tmpdir, "test_input")
-	ioutil.WriteFile(inputPath, []byte("the test input\nthe input test\nfoo bar baz"), 0700)
+	assert.NoError(t, ioutil.WriteFile(inputPath, []byte("the test input\nthe input test\nfoo bar baz"), 0700))
 
 	job := NewJob(testWCJob{}, testWCJob{})
 	driver := NewDriver(
@@ -121,7 +128,7 @@ func TestLocalMultiJob(t *testing.T) {
 	defer os.RemoveAll(tmpdir)
 
 	inputPath := filepath.Join(tmpdir, "test_input")
-	ioutil.WriteFile(inputPath, []byte("the test input\nthe input test\nfoo bar baz"), 0700)
+	assert.NoError(t, ioutil.WriteFile(inputPath, []byte("the test input\nthe input test\nfoo bar baz"), 0700))
 
 	mr1 := testWCJob{}
 	job1 := NewJob(mr1, mr1)
@@ -170,8 +177,11 @@ type statefulJob struct {
 func (s statefulJob) Map(key, value string, emitter Emitter) {
 	for _, word := range strings.Fields(value) {
 		for _, filterWord := range *s.filterWords {
-			if filterWord == word {
-				emitter.Emit(word, "1")
+			if filterWord != word {
+				continue
+			}
+			if err := emitter.Emit(word, "1"); err != nil {
+				panic(err)
 			}
 		}
 	}
@@ -182,7 +192,9 @@ func (statefulJob) Reduce(key string, values ValueIterator, emitter Emitter) {
 	for range values.Iter() {
 		count++
 	}
-	emitter.Emit(key, fmt.Sprintf("%d", count))
+	if err := emitter.Emit(key, fmt.Sprintf("%d", count)); err != nil {
+		panic(err)
+	}
 }
 
 func TestLocalStructFieldMapReduce(t *testing.T) {
@@ -191,7 +203,7 @@ func TestLocalStructFieldMapReduce(t *testing.T) {
 	defer os.RemoveAll(tmpdir)
 
 	inputPath := filepath.Join(tmpdir, "test_input")
-	ioutil.WriteFile(inputPath, []byte("the test input\nthe input test\nfoo bar baz"), 0700)
+	assert.NoError(t, ioutil.WriteFile(inputPath, []byte("the test input\nthe input test\nfoo bar baz"), 0700))
 
 	jobStruct := statefulJob{filterWords: &[]string{"foo", "bar"}}
 	job := NewJob(jobStruct, jobStruct)

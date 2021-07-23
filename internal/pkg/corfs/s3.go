@@ -33,6 +33,9 @@ type S3FileSystem struct {
 
 func parseS3URI(uri string) (*url.URL, error) {
 	parsed, err := url.Parse(uri)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse S3URI: %s", err)
+	}
 
 	if _, ok := validS3Schemes[parsed.Scheme]; !ok {
 		return nil, fmt.Errorf("Invalid s3 scheme: '%s'", parsed.Scheme)
@@ -42,9 +45,7 @@ func parseS3URI(uri string) (*url.URL, error) {
 	// 	return nil, fmt.Errorf("Invalid s3 url: '%s'", uri)
 	// }
 
-	if strings.HasPrefix(parsed.Path, "/") {
-		parsed.Path = parsed.Path[1:]
-	}
+	parsed.Path = strings.TrimPrefix(parsed.Path, "/")
 
 	return parsed, err
 }
@@ -211,9 +212,7 @@ func (s *S3FileSystem) Delete(filePath string) error {
 func (s *S3FileSystem) Join(elem ...string) string {
 	stripped := make([]string, len(elem))
 	for i, str := range elem {
-		if strings.HasPrefix(str, "/") {
-			str = str[1:]
-		}
+		str = strings.TrimPrefix(str, "/")
 		if strings.HasSuffix(str, "/") && i != len(elem)-1 {
 			str = str[:len(str)-1]
 		}

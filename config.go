@@ -1,6 +1,7 @@
 package corral
 
 import (
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -11,7 +12,9 @@ func loadConfig() {
 
 	setupDefaults()
 
-	viper.ReadInConfig()
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatal("could not load config: ", err)
+	}
 
 	viper.SetEnvPrefix("corral")
 	viper.AutomaticEnv()

@@ -68,7 +68,7 @@ func handleRequest(ctx context.Context, task task) (string, error) {
 		err := currentJob.runReducer(task.BinID)
 		return prepareResult(currentJob), err
 	}
-	return "", fmt.Errorf("Unknown phase: %d", task.Phase)
+	return "", fmt.Errorf("unknown phase: %d", task.Phase)
 }
 
 type lambdaExecutor struct {

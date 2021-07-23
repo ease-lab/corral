@@ -12,8 +12,7 @@ import (
 
 func TestLocalImplementsFileSystem(t *testing.T) {
 	backend := LocalFileSystem{}
-	var fileSystem FileSystem
-	fileSystem = &backend
+	fileSystem := &backend
 
 	assert.NotNil(t, fileSystem)
 }
@@ -24,7 +23,7 @@ func TestLocalListFiles(t *testing.T) {
 	assert.Nil(t, err)
 
 	tmpFilePath := path.Join(tmpdir, "tmpfile")
-	ioutil.WriteFile(tmpFilePath, []byte("foo"), 0777)
+	assert.NoError(t, ioutil.WriteFile(tmpFilePath, []byte("foo"), 0777))
 
 	fs := LocalFileSystem{}
 
@@ -40,7 +39,7 @@ func TestLocalOpenReader(t *testing.T) {
 	defer os.RemoveAll(tmpdir)
 	assert.Nil(t, err)
 
-	ioutil.WriteFile(path.Join(tmpdir, "tmpfile"), []byte("foo bar baz"), 0777)
+	assert.NoError(t, ioutil.WriteFile(path.Join(tmpdir, "tmpfile"), []byte("foo bar baz"), 0777))
 
 	fs := LocalFileSystem{}
 
@@ -95,7 +94,7 @@ func TestLocalStat(t *testing.T) {
 
 	path := path.Join(tmpdir, "tmpfile")
 
-	ioutil.WriteFile(path, []byte("foo"), 0777)
+	assert.NoError(t, ioutil.WriteFile(path, []byte("foo"), 0777))
 
 	fs := LocalFileSystem{}
 
@@ -135,7 +134,7 @@ func TestLocalListGlob(t *testing.T) {
 
 	path := path.Join(tmpdir, "tmpfile")
 
-	ioutil.WriteFile(path, []byte("foo"), 0777)
+	assert.NoError(t, ioutil.WriteFile(path, []byte("foo"), 0777))
 
 	fs := LocalFileSystem{}
 

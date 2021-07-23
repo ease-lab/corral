@@ -37,8 +37,7 @@ func cleanup(backend *S3FileSystem, t *testing.T) {
 
 func TestS3ImplementsFileSystem(t *testing.T) {
 	backend := S3FileSystem{}
-	var fileSystem FileSystem
-	fileSystem = &backend
+	fileSystem := &backend
 
 	assert.NotNil(t, fileSystem)
 }

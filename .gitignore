@@ -15,6 +15,7 @@
 
 vendor/
 .vscode
+.idea
 *.gif
 bin/
 output-*

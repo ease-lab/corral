@@ -16,11 +16,12 @@ import (
 	"golang.org/x/sync/semaphore"
 
 	log "github.com/sirupsen/logrus"
-	pb "gopkg.in/cheggaaa/pb.v1"
+	"gopkg.in/cheggaaa/pb.v1"
 
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/bcongdon/corral/internal/pkg/corfs"
 	flag "github.com/spf13/pflag"
+
+	"github.com/bcongdon/corral/internal/pkg/corfs"
 )
 
 // Driver controls the execution of a MapReduce Job
@@ -46,7 +47,9 @@ func newConfig() *config {
 
 	// Register command line flags
 	flag.Parse()
-	viper.BindPFlags(flag.CommandLine)
+	if err := viper.BindPFlags(flag.CommandLine); err != nil {
+		log.Fatal("could not create new config: ", err)
+	}
 
 	return &config{
 		Inputs:          []string{},
@@ -142,7 +145,9 @@ func (d *Driver) runMapPhase(job *Job, jobNumber int, inputs []string) {
 	var wg sync.WaitGroup
 	sem := semaphore.NewWeighted(int64(d.config.MaxConcurrency))
 	for binID, bin := range inputBins {
-		sem.Acquire(context.Background(), 1)
+		if err := sem.Acquire(context.Background(), 1); err != nil {
+			log.Fatal("failed to acquire semaphore: ", err)
+		}
 		wg.Add(1)
 		go func(bID uint, b []inputSplit) {
 			defer wg.Done()
@@ -219,7 +224,7 @@ func (d *Driver) run() {
 var lambdaFlag = flag.Bool("lambda", false, "Use lambda backend")
 var outputDir = flag.StringP("out", "o", "", "Output `directory` (can be local or in S3)")
 var memprofile = flag.String("memprofile", "", "Write memory profile to `file`")
-var verbose = flag.BoolP("verbose", "v", false, "Output verbose logs")
+var _ = flag.BoolP("verbose", "v", false, "Output verbose logs")
 var undeploy = flag.Bool("undeploy", false, "Undeploy the Lambda function and IAM permissions without running the driver")
 
 // Main starts the Driver, running the submitted jobs.
