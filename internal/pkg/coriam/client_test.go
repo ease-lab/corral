@@ -31,8 +31,8 @@ func (i *iamMock) GetRole(input *iam.GetRoleInput) (*iam.GetRoleOutput, error) {
 	}
 	return &iam.GetRoleOutput{
 		Role: &iam.Role{
-			RoleName: input.RoleName,
-			Arn:      aws.String("testARN"),
+			RoleName:                 input.RoleName,
+			Arn:                      aws.String("testARN"),
 			AssumeRolePolicyDocument: aws.String(i.assumeRolePolicyDocument),
 		},
 	}, nil
