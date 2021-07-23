@@ -21,7 +21,7 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	flag "github.com/spf13/pflag"
 
-	"github.com/bcongdon/corral/internal/pkg/corfs"
+	"github.com/ease-lab/corral/internal/pkg/corfs"
 )
 
 // Driver controls the execution of a MapReduce Job
@@ -191,6 +191,15 @@ func (d *Driver) run() {
 		lBackend.Deploy()
 	}
 
+	if runningInKnative() {
+		d.executor.(*knativeExecutor).Start()
+	}
+	if _, ok := d.executor.(*knativeExecutor); ok {
+		// TODO: not yet implemented
+		// kBackend.Deploy()
+		log.Warn("Automatic deployment for Knative is not yet implemented, do it yourself!")
+	}
+
 	if len(d.config.Inputs) == 0 {
 		log.Error("No inputs!")
 		return
@@ -222,10 +231,12 @@ func (d *Driver) run() {
 }
 
 var lambdaFlag = flag.Bool("lambda", false, "Use lambda backend")
+var knativeFlag = flag.Bool("knative", false, "Use Knative backend")
 var outputDir = flag.StringP("out", "o", "", "Output `directory` (can be local or in S3)")
 var memprofile = flag.String("memprofile", "", "Write memory profile to `file`")
 var _ = flag.BoolP("verbose", "v", false, "Output verbose logs")
 var undeploy = flag.Bool("undeploy", false, "Undeploy the Lambda function and IAM permissions without running the driver")
+var undeployKnative = flag.Bool("undeployKnative", false, "Undeploy the Knative service without running the driver")
 
 // Main starts the Driver, running the submitted jobs.
 func (d *Driver) Main() {
@@ -237,11 +248,17 @@ func (d *Driver) Main() {
 		lambda := newLambdaExecutor(viper.GetString("lambdaFunctionName"))
 		lambda.Undeploy()
 		return
+	} else if *undeployKnative {
+		knative := newKnativeExecutor(viper.GetString("knativeFunctionName"))
+		knative.Undeploy()
+		return
 	}
 
 	d.config.Inputs = append(d.config.Inputs, flag.Args()...)
 	if *lambdaFlag {
 		d.executor = newLambdaExecutor(viper.GetString("lambdaFunctionName"))
+	} else if *knativeFlag {
+		d.executor = newKnativeExecutor(viper.GetString("knativeFunctionName"))
 	}
 
 	if *outputDir != "" {

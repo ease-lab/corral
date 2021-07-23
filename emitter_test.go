@@ -9,7 +9,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/bcongdon/corral/internal/pkg/corfs"
+	"github.com/ease-lab/corral/internal/pkg/corfs"
 
 	"github.com/stretchr/testify/assert"
 )

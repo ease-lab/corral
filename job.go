@@ -13,7 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/semaphore"
 
-	"github.com/bcongdon/corral/internal/pkg/corfs"
+	"github.com/ease-lab/corral/internal/pkg/corfs"
 )
 
 // Job is the logical container for a MapReduce job
