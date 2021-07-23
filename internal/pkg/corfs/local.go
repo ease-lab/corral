@@ -13,7 +13,7 @@ type LocalFileSystem struct{}
 
 func walkDir(dir string) []FileInfo {
 	files := make([]FileInfo, 0)
-	filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
+	if err := filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
 		if err != nil {
 			log.Error(err)
 			return err
@@ -26,7 +26,9 @@ func walkDir(dir string) []FileInfo {
 			Size: f.Size(),
 		})
 		return nil
-	})
+	}); err != nil {
+		log.Fatal("failed to walk directory: ", err)
+	}
 
 	return files
 }
@@ -76,7 +78,9 @@ func (l *LocalFileSystem) OpenWriter(filePath string) (io.WriteCloser, error) {
 	// Create writer directory if necessary
 	_, err := os.Stat(dir)
 	if os.IsNotExist(err) {
-		os.MkdirAll(dir, 0777)
+		if err := os.MkdirAll(dir, 0777); err != nil {
+			return nil, err
+		}
 	}
 
 	return os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)

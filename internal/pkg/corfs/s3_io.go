@@ -33,7 +33,9 @@ func (s *s3Writer) Init() error {
 }
 
 func (s *s3Writer) uploadChunk() error {
-	s.buf.Seek(0, io.SeekStart)
+	if _, err := s.buf.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
 	partNumber := int64(len(s.complatedParts) + 1)
 
 	uploadParams := &s3.UploadPartInput{
@@ -66,7 +68,9 @@ func (s *s3Writer) Write(p []byte) (n int, err error) {
 }
 
 func (s *s3Writer) Close() error {
-	err := s.uploadChunk()
+	if err := s.uploadChunk(); err != nil {
+		return err
+	}
 
 	completeParams := &s3.CompleteMultipartUploadInput{
 		Bucket:   aws.String(s.bucket),
@@ -77,8 +81,7 @@ func (s *s3Writer) Close() error {
 		},
 	}
 
-	_, err = s.client.CompleteMultipartUpload(completeParams)
-
+	_, err := s.client.CompleteMultipartUpload(completeParams)
 	return err
 }
 

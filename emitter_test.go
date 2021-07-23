@@ -119,9 +119,9 @@ func TestMapperEmitter(t *testing.T) {
 
 	assert.Len(t, mFs.writers, 3)
 
-	assert.Equal(t, `{"key":"key123","value":"val2"}`+"\n", string(mFs.writers["out/map-bin0-0.out"].Bytes()))
-	assert.Equal(t, `{"key":"key359","value":"val3"}`+"\n", string(mFs.writers["out/map-bin1-0.out"].Bytes()))
-	assert.Equal(t, `{"key":"key1","value":"val1"}`+"\n", string(mFs.writers["out/map-bin2-0.out"].Bytes()))
+	assert.Equal(t, `{"key":"key123","value":"val2"}`+"\n", mFs.writers["out/map-bin0-0.out"].String())
+	assert.Equal(t, `{"key":"key359","value":"val3"}`+"\n", mFs.writers["out/map-bin1-0.out"].String())
+	assert.Equal(t, `{"key":"key1","value":"val1"}`+"\n", mFs.writers["out/map-bin2-0.out"].String())
 
 	assert.Nil(t, emitter.close())
 }
@@ -148,8 +148,8 @@ func TestMapperEmitterCustomPartition(t *testing.T) {
 
 	assert.Len(t, mFs.writers, 2)
 
-	assert.Equal(t, `{"key":"a","value":"val1"}`+"\n"+`{"key":"a","value":"val2"}`+"\n", string(mFs.writers["out/map-bin0-0.out"].Bytes()))
-	assert.Equal(t, `{"key":"b","value":"val3"}`+"\n", string(mFs.writers["out/map-bin2-0.out"].Bytes()))
+	assert.Equal(t, `{"key":"a","value":"val1"}`+"\n"+`{"key":"a","value":"val2"}`+"\n", mFs.writers["out/map-bin0-0.out"].String())
+	assert.Equal(t, `{"key":"b","value":"val3"}`+"\n", mFs.writers["out/map-bin2-0.out"].String())
 
 	assert.Nil(t, emitter.close())
 }

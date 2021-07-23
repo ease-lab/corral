@@ -9,10 +9,11 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/bcongdon/corral/internal/pkg/corfs"
-	humanize "github.com/dustin/go-humanize"
+	"github.com/dustin/go-humanize"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/semaphore"
+
+	"github.com/bcongdon/corral/internal/pkg/corfs"
 )
 
 // Job is the logical container for a MapReduce job
@@ -64,11 +65,6 @@ func splitInputRecord(record string) *keyValue {
 
 // runMapperSplit runs the mapper on a single inputSplit
 func (j *Job) runMapperSplit(split inputSplit, emitter Emitter) error {
-	offset := split.StartOffset
-	if split.StartOffset != 0 {
-		offset--
-	}
-
 	inputSource, err := j.fileSystem.OpenReader(split.Filename, split.StartOffset)
 	if err != nil {
 		return err
@@ -112,12 +108,12 @@ func (j *Job) runReducer(binID uint) error {
 	// Open emitter for output data
 	path = j.fileSystem.Join(j.outputPath, fmt.Sprintf("output-part-%d", binID))
 	emitWriter, err := j.fileSystem.OpenWriter(path)
-	defer emitWriter.Close()
 	if err != nil {
 		return err
 	}
+	defer emitWriter.Close()
 
-	data := make(map[string][]string, 0)
+	data := make(map[string][]string)
 	var bytesRead int64
 
 	for _, file := range files {
@@ -157,7 +153,9 @@ func (j *Job) runReducer(binID uint) error {
 
 	emitter := newReducerEmitter(emitWriter)
 	for key, values := range data {
-		sem.Acquire(context.Background(), 1)
+		if err := sem.Acquire(context.Background(), 1); err != nil {
+			return fmt.Errorf("failed to run reducer: failed to acquire semaphore: %s", err)
+		}
 		waitGroup.Add(1)
 		go func(key string, values []string) {
 			defer sem.Release(1)

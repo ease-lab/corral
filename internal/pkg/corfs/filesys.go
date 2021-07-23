@@ -2,6 +2,7 @@ package corfs
 
 import (
 	"io"
+	"log"
 	"strings"
 )
 
@@ -42,9 +43,13 @@ func InitFilesystem(fsType FileSystemType) FileSystem {
 		fs = &LocalFileSystem{}
 	case S3:
 		fs = &S3FileSystem{}
+	default:
+		log.Fatal("failed to initialize filesystem: unknown FileSystemType: ", fsType)
 	}
 
-	fs.Init()
+	if err := fs.Init(); err != nil {
+		log.Fatal("failed to initialize filesystem: ", err)
+	}
 	return fs
 }
 
@@ -60,6 +65,8 @@ func InferFilesystem(location string) FileSystem {
 		fs = &LocalFileSystem{}
 	}
 
-	fs.Init()
+	if err := fs.Init(); err != nil {
+		log.Fatal("failed to initialize filesystem: ", err)
+	}
 	return fs
 }
