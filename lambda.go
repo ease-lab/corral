@@ -12,9 +12,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
-	"github.com/bcongdon/corral/internal/pkg/corfs"
-	"github.com/bcongdon/corral/internal/pkg/coriam"
-	"github.com/bcongdon/corral/internal/pkg/corlambda"
+	"github.com/ease-lab/corral/internal/pkg/corfs"
+	"github.com/ease-lab/corral/internal/pkg/coriam"
+	"github.com/ease-lab/corral/internal/pkg/corlambda"
 )
 
 var (
