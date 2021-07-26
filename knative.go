@@ -12,7 +12,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/ease-lab/corral/internal/pkg/corfs"
+	"github.com/bcongdon/corral/internal/pkg/corfs"
 )
 
 var (
@@ -90,11 +90,11 @@ func (k *knativeExecutor) RunReducer(job *Job, jobNumber int, binID uint) error 
 }
 
 func (k *knativeExecutor) Deploy() {
-	panic("NOT YET IMPLEMENTED")
+	log.Fatal("NOT YET IMPLEMENTED")
 }
 
 func (k *knativeExecutor) Undeploy() {
-	panic("NOT YET IMPLEMENTED")
+	log.Fatal("NOT YET IMPLEMENTED")
 }
 
 func (k *knativeExecutor) Start() {
@@ -106,25 +106,25 @@ func (k *knativeExecutor) Start() {
 		MaxHeaderBytes: 1 << 20,
 	}
 	if err := s.ListenAndServe(); err != nil {
-		log.Fatal("http server failed: ", err)
+		log.Fatal("HTTP server failed: ", err)
 	}
 }
 
 func (k *knativeExecutor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Error("failed to read http body: ", err)
+		log.Error("Failed to read http body: ", err)
 	}
 	var task task
 	if err := json.Unmarshal(body, &task); err != nil {
-		log.Error("failed to unmarshal: ", err)
+		log.Error("Failed to unmarshal: ", err)
 	}
 	s, err := knativeHandleRequest(task)
 	if err != nil {
-		log.Error("failed to handle request: ", err)
+		log.Error("Failed to handle request: ", err)
 	}
 	if _, err := w.Write([]byte(s)); err != nil {
-		log.Error("failed to write task result: ", err)
+		log.Error("Failed to write task result: ", err)
 	}
 }
 

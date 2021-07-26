@@ -3,8 +3,8 @@ package corral
 import (
 	"bufio"
 
+	"github.com/bcongdon/corral/internal/pkg/corfs"
 	humanize "github.com/dustin/go-humanize"
-	"github.com/ease-lab/corral/internal/pkg/corfs"
 	log "github.com/sirupsen/logrus"
 )
 
