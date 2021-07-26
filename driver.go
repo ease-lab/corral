@@ -192,6 +192,7 @@ func (d *Driver) run() {
 	}
 
 	if runningInKnative() {
+		knativeDriver = d
 		d.executor.(*knativeExecutor).Start()
 	}
 	if _, ok := d.executor.(*knativeExecutor); ok {

@@ -15,6 +15,10 @@ import (
 	"github.com/ease-lab/corral/internal/pkg/corfs"
 )
 
+var (
+	knativeDriver *Driver
+)
+
 // runningInKnative infers if the program is running in Knative via inspection of the environment
 // TODO: check for any envvars that are present by default
 func runningInKnative() bool {
@@ -54,7 +58,7 @@ func (k *knativeExecutor) RunMapper(job *Job, jobNumber int, binID uint, inputSp
 	}
 
 	resultPayload, err := k.invoke(payload)
-	taskResult := loadTaskResult(resultPayload)
+	taskResult := knativeLoadTaskResult(resultPayload)
 
 	atomic.AddInt64(&job.bytesRead, int64(taskResult.BytesRead))
 	atomic.AddInt64(&job.bytesWritten, int64(taskResult.BytesWritten))
@@ -77,7 +81,7 @@ func (k *knativeExecutor) RunReducer(job *Job, jobNumber int, binID uint) error 
 	}
 
 	resultPayload, err := k.invoke(payload)
-	taskResult := loadTaskResult(resultPayload)
+	taskResult := knativeLoadTaskResult(resultPayload)
 
 	atomic.AddInt64(&job.bytesRead, int64(taskResult.BytesRead))
 	atomic.AddInt64(&job.bytesWritten, int64(taskResult.BytesWritten))
@@ -127,7 +131,7 @@ func (k *knativeExecutor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func knativeHandleRequest(task task) (string, error) {
 	// Setup current job
 	fs := corfs.InitFilesystem(task.FileSystemType)
-	currentJob := lambdaDriver.jobs[task.JobNumber]
+	currentJob := knativeDriver.jobs[task.JobNumber]
 	currentJob.fileSystem = fs
 	currentJob.intermediateBins = task.IntermediateBins
 	currentJob.outputPath = task.WorkingLocation
@@ -141,6 +145,15 @@ func knativeHandleRequest(task task) (string, error) {
 		return prepareResult(currentJob), err
 	}
 	return "", fmt.Errorf("unknown phase: %d", task.Phase)
+}
+
+func knativeLoadTaskResult(payload []byte) taskResult {
+	var result taskResult
+	err := json.Unmarshal(payload, &result)
+	if err != nil {
+		log.Errorf("%s", err)
+	}
+	return result
 }
 
 func (k *knativeExecutor) invoke(payload []byte) (outputPayload []byte, err error) {

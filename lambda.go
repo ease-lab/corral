@@ -41,7 +41,10 @@ func prepareResult(job *Job) string {
 		BytesWritten: int(job.bytesWritten),
 	}
 
-	payload, _ := json.Marshal(result)
+	payload, err := json.Marshal(result)
+	if err != nil {
+		log.Fatalln("failed to prepare result: ", err)
+	}
 	return string(payload)
 }
 
