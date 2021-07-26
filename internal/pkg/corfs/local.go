@@ -27,7 +27,7 @@ func walkDir(dir string) []FileInfo {
 		})
 		return nil
 	}); err != nil {
-		log.Fatal("failed to walk directory: ", err)
+		log.Fatal("Failed to walk directory: ", err)
 	}
 
 	return files

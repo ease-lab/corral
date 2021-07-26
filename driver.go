@@ -21,7 +21,7 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	flag "github.com/spf13/pflag"
 
-	"github.com/ease-lab/corral/internal/pkg/corfs"
+	"github.com/bcongdon/corral/internal/pkg/corfs"
 )
 
 // Driver controls the execution of a MapReduce Job
@@ -48,7 +48,7 @@ func newConfig() *config {
 	// Register command line flags
 	flag.Parse()
 	if err := viper.BindPFlags(flag.CommandLine); err != nil {
-		log.Fatal("could not create new config: ", err)
+		log.Fatal("Could not create new config: ", err)
 	}
 
 	return &config{
@@ -146,7 +146,7 @@ func (d *Driver) runMapPhase(job *Job, jobNumber int, inputs []string) {
 	sem := semaphore.NewWeighted(int64(d.config.MaxConcurrency))
 	for binID, bin := range inputBins {
 		if err := sem.Acquire(context.Background(), 1); err != nil {
-			log.Fatal("failed to acquire semaphore: ", err)
+			log.Fatal("Failed to acquire semaphore: ", err)
 		}
 		wg.Add(1)
 		go func(bID uint, b []inputSplit) {
@@ -274,11 +274,11 @@ func (d *Driver) Main() {
 	if *memprofile != "" {
 		f, err := os.Create(*memprofile)
 		if err != nil {
-			log.Fatal("could not create memory profile: ", err)
+			log.Fatal("Could not create memory profile: ", err)
 		}
 		runtime.GC() // get up-to-date statistics
 		if err := pprof.WriteHeapProfile(f); err != nil {
-			log.Fatal("could not write memory profile: ", err)
+			log.Fatal("Could not write memory profile: ", err)
 		}
 		f.Close()
 	}

@@ -44,11 +44,11 @@ func InitFilesystem(fsType FileSystemType) FileSystem {
 	case S3:
 		fs = &S3FileSystem{}
 	default:
-		log.Fatal("failed to initialize filesystem: unknown FileSystemType: ", fsType)
+		log.Fatal("Failed to initialize filesystem: unknown FileSystemType: ", fsType)
 	}
 
 	if err := fs.Init(); err != nil {
-		log.Fatal("failed to initialize filesystem: ", err)
+		log.Fatal("Failed to initialize filesystem: ", err)
 	}
 	return fs
 }
@@ -66,7 +66,7 @@ func InferFilesystem(location string) FileSystem {
 	}
 
 	if err := fs.Init(); err != nil {
-		log.Fatal("failed to initialize filesystem: ", err)
+		log.Fatal("Failed to initialize filesystem: ", err)
 	}
 	return fs
 }

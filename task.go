@@ -1,7 +1,7 @@
 package corral
 
 import (
-	"github.com/ease-lab/corral/internal/pkg/corfs"
+	"github.com/bcongdon/corral/internal/pkg/corfs"
 )
 
 // Phase is a descriptor of the phase (i.e. Map or Reduce) of a Job
