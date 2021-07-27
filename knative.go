@@ -1,19 +1,26 @@
 package corral
 
 import (
-	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
+	"net"
 	"os"
 	"sync/atomic"
 	"time"
 
+	tracing "github.com/ease-lab/vhive/utils/tracing/go"
 	log "github.com/sirupsen/logrus"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 
 	"github.com/bcongdon/corral/internal/pkg/corfs"
 )
+
+type corralServer struct {
+	UnimplementedCorralServer
+}
 
 var (
 	knativeDriver *Driver
@@ -98,34 +105,46 @@ func (k *knativeExecutor) Undeploy() {
 }
 
 func (k *knativeExecutor) Start() {
-	s := &http.Server{
-		Addr:           ":80",
-		Handler:        k,
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		MaxHeaderBytes: 1 << 20,
+	port := os.Getenv("PORT")
+	if port == "" {
+		log.Warn("PORT envvar is missing, defaulting to 80")
+		port = "80"
 	}
-	if err := s.ListenAndServe(); err != nil {
-		log.Fatal("HTTP server failed: ", err)
+
+	var grpcServer *grpc.Server
+	if tracing.IsTracingEnabled() {
+		grpcServer = tracing.GetGRPCServerWithUnaryInterceptor()
+	} else {
+		grpcServer = grpc.NewServer()
+	}
+
+	var corralServer corralServer
+
+	RegisterCorralServer(grpcServer, &corralServer)
+	reflection.Register(grpcServer)
+
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
+	if err != nil {
+		log.Fatal("Failed to listen: ", err)
+	}
+
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatal("Failed to serve: ", err)
 	}
 }
 
-func (k *knativeExecutor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		log.Error("Failed to read http body: ", err)
-	}
+func (cs *corralServer) Invoke(_ context.Context, req *CorralRequest) (*CorralResponse, error) {
 	var task task
-	if err := json.Unmarshal(body, &task); err != nil {
+	if err := json.Unmarshal(req.Payload, &task); err != nil {
 		log.Error("Failed to unmarshal: ", err)
+		return nil, err
 	}
 	s, err := knativeHandleRequest(task)
 	if err != nil {
 		log.Error("Failed to handle request: ", err)
+		return nil, err
 	}
-	if _, err := w.Write([]byte(s)); err != nil {
-		log.Error("Failed to write task result: ", err)
-	}
+	return &CorralResponse{Payload: []byte(s)}, nil
 }
 
 func knativeHandleRequest(task task) (string, error) {
@@ -157,11 +176,27 @@ func knativeLoadTaskResult(payload []byte) taskResult {
 }
 
 func (k *knativeExecutor) invoke(payload []byte) (outputPayload []byte, err error) {
-	url := fmt.Sprintf("http://%s.default.127.0.0.1.nip.io:31080/", k.serviceName)
-	res, err := http.Post(url, "application/json", bytes.NewBuffer(payload))
-	if err != nil {
-		return nil, err
+	address := fmt.Sprintf("%s.default.127.0.0.1.nip.io:31080", k.serviceName)
+	dialOptions := []grpc.DialOption{grpc.WithBlock(), grpc.WithInsecure()}
+	if tracing.IsTracingEnabled() {
+		dialOptions = append(dialOptions, grpc.WithUnaryInterceptor(otelgrpc.UnaryClientInterceptor()))
 	}
-	defer res.Body.Close()
-	return io.ReadAll(res.Body)
+	conn, err := grpc.Dial(address, dialOptions...)
+	if err != nil {
+		log.Fatal("Failed to dial: ", err)
+	}
+	defer conn.Close()
+
+	client := NewCorralClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	resp, err := client.Invoke(ctx, &CorralRequest{
+		Payload: payload,
+	})
+	if err != nil {
+		log.Fatal("Failed to invoke: ", err)
+	}
+
+	return resp.Payload, nil
 }
