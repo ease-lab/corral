@@ -40,12 +40,12 @@ func runningInKnative() bool {
 }
 
 type knativeExecutor struct {
-	serviceName string
+	serviceURL string
 }
 
-func newKnativeExecutor(serviceName string) *knativeExecutor {
+func newKnativeExecutor(serviceURL string) *knativeExecutor {
 	return &knativeExecutor{
-		serviceName: serviceName,
+		serviceURL: serviceURL,
 	}
 }
 
@@ -176,12 +176,11 @@ func knativeLoadTaskResult(payload []byte) taskResult {
 }
 
 func (k *knativeExecutor) invoke(payload []byte) (outputPayload []byte, err error) {
-	address := fmt.Sprintf("%s.default.127.0.0.1.nip.io:31080", k.serviceName)
 	dialOptions := []grpc.DialOption{grpc.WithBlock(), grpc.WithInsecure()}
 	if tracing.IsTracingEnabled() {
 		dialOptions = append(dialOptions, grpc.WithUnaryInterceptor(otelgrpc.UnaryClientInterceptor()))
 	}
-	conn, err := grpc.Dial(address, dialOptions...)
+	conn, err := grpc.Dial(k.serviceURL, dialOptions...)
 	if err != nil {
 		log.Fatal("Failed to dial: ", err)
 	}

@@ -191,7 +191,10 @@ func (d *Driver) run() {
 		lBackend.Deploy()
 	}
 
-	if runningInKnative() {
+	// runningInKnative() but if it is not the driver, start the
+	// executor to act as a worker
+	if runningInKnative() && os.Getenv("CORRAL_DRIVER") != "1" {
+		log.Info("Running in Knative as a worker")
 		knativeDriver = d
 		d.executor.(*knativeExecutor).Start()
 	}
@@ -200,6 +203,8 @@ func (d *Driver) run() {
 		// kBackend.Deploy()
 		log.Warn("Automatic deployment for Knative is not yet implemented, do it yourself!")
 	}
+
+	log.Info("Running as the driver")
 
 	if len(d.config.Inputs) == 0 {
 		log.Error("No inputs!")
@@ -250,7 +255,7 @@ func (d *Driver) Main() {
 		lambda.Undeploy()
 		return
 	} else if *undeployKnative {
-		knative := newKnativeExecutor(viper.GetString("knativeFunctionName"))
+		knative := newKnativeExecutor(viper.GetString("knativeServiceURL"))
 		knative.Undeploy()
 		return
 	}
@@ -259,7 +264,7 @@ func (d *Driver) Main() {
 	if *lambdaFlag {
 		d.executor = newLambdaExecutor(viper.GetString("lambdaFunctionName"))
 	} else if *knativeFlag {
-		d.executor = newKnativeExecutor(viper.GetString("knativeFunctionName"))
+		d.executor = newKnativeExecutor(viper.GetString("knativeServiceURL"))
 	}
 
 	if *outputDir != "" {

@@ -109,7 +109,7 @@ jobs:
       - name: Test
         working-directory: examples/word_count
         env:
-          CORRAL_KNATIVEFUNCTIONNAME: local
+          CORRAL_KNATIVESERVICEURL: 127.0.0.1:31080
         run: |
           ./bin/word_count --verbose --out s3://vhive-corral-bench/word_count/e2e-knative-local/out --knative s3://vhive-corral-bench/word_count/sample-inputs/metamorphosis.txt
 
