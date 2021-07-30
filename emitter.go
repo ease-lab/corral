@@ -1,6 +1,7 @@
 package corral
 
 import (
+	context "context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,7 +16,7 @@ import (
 
 // Emitter enables mappers and reducers to yield key-value pairs.
 type Emitter interface {
-	Emit(key, value string) error
+	Emit(ctx context.Context, key, value string) error
 	close() error
 	bytesWritten() int64
 }
@@ -36,7 +37,7 @@ func newReducerEmitter(writer io.WriteCloser) *reducerEmitter {
 }
 
 // Emit yields a key-value pair to the framework.
-func (e *reducerEmitter) Emit(key, value string) error {
+func (e *reducerEmitter) Emit(ctx context.Context, key, value string) error {
 	e.mut.Lock()
 	defer e.mut.Unlock()
 
@@ -87,7 +88,7 @@ func hashPartition(key string, numBins uint) uint {
 }
 
 // Emit yields a key-value pair to the framework.
-func (me *mapperEmitter) Emit(key, value string) error {
+func (me *mapperEmitter) Emit(ctx context.Context, key, value string) error {
 	bin := me.partitionFunc(key, me.numBins)
 
 	// Open writer for the bin, if necessary

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -19,7 +20,7 @@ func min(a, b int) int {
 	return b
 }
 
-func (a amplab2) Map(key, value string, emitter corral.Emitter) {
+func (a amplab2) Map(ctx context.Context, key, value string, emitter corral.Emitter) {
 	fields := strings.Split(value, ",")
 	if len(fields) != 9 {
 		fmt.Printf("Invalid record: '%s'\n", value)
@@ -28,10 +29,10 @@ func (a amplab2) Map(key, value string, emitter corral.Emitter) {
 
 	sourceIP := fields[0]
 	adRevenue := fields[3]
-	emitter.Emit(sourceIP[:min(subStrX, len(sourceIP))], adRevenue)
+	emitter.Emit(ctx, sourceIP[:min(subStrX, len(sourceIP))], adRevenue)
 }
 
-func (a amplab2) Reduce(key string, values corral.ValueIterator, emitter corral.Emitter) {
+func (a amplab2) Reduce(ctx context.Context, key string, values corral.ValueIterator, emitter corral.Emitter) {
 	totalRevenue := 0.0
 	for value := range values.Iter() {
 		adRevenue, err := strconv.ParseFloat(value, 64)
@@ -39,12 +40,12 @@ func (a amplab2) Reduce(key string, values corral.ValueIterator, emitter corral.
 			totalRevenue += adRevenue
 		}
 	}
-	emitter.Emit(key, fmt.Sprintf("%f", totalRevenue))
+	emitter.Emit(ctx, key, fmt.Sprintf("%f", totalRevenue))
 }
 
 func main() {
 	job := corral.NewJob(amplab2{}, amplab2{})
 
 	driver := corral.NewDriver(job)
-	driver.Main()
+	driver.Main(context.Background())
 }

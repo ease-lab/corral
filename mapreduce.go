@@ -1,5 +1,7 @@
 package corral
 
+import context "context"
+
 // ValueIterator iterates over a sequence of values.
 // This is used during the Reduce phase, wherein a reduce task
 // iterates over all values for a particular key.
@@ -20,12 +22,12 @@ func newValueIterator(c chan string) ValueIterator {
 
 // Mapper defines the interface for a Map task.
 type Mapper interface {
-	Map(key, value string, emitter Emitter)
+	Map(ctx context.Context, key, value string, emitter Emitter)
 }
 
 // Reducer defines the interface for a Reduce task.
 type Reducer interface {
-	Reduce(key string, values ValueIterator, emitter Emitter)
+	Reduce(ctx context.Context, key string, values ValueIterator, emitter Emitter)
 }
 
 // PartitionFunc defines a function that can be used to segment map keys into intermediate buckets.

@@ -32,14 +32,14 @@ type Job struct {
 }
 
 // Logic for running a single map task
-func (j *Job) runMapper(mapperID uint, splits []inputSplit) error {
+func (j *Job) runMapper(ctx context.Context, mapperID uint, splits []inputSplit) error {
 	emitter := newMapperEmitter(j.intermediateBins, mapperID, j.outputPath, j.fileSystem)
 	if j.PartitionFunc != nil {
 		emitter.partitionFunc = j.PartitionFunc
 	}
 
 	for _, split := range splits {
-		err := j.runMapperSplit(split, &emitter)
+		err := j.runMapperSplit(ctx, split, &emitter)
 		if err != nil {
 			return err
 		}
@@ -64,7 +64,7 @@ func splitInputRecord(record string) *keyValue {
 }
 
 // runMapperSplit runs the mapper on a single inputSplit
-func (j *Job) runMapperSplit(split inputSplit, emitter Emitter) error {
+func (j *Job) runMapperSplit(ctx context.Context, split inputSplit, emitter Emitter) error {
 	inputSource, err := j.fileSystem.OpenReader(split.Filename, split.StartOffset)
 	if err != nil {
 		return err
@@ -82,7 +82,7 @@ func (j *Job) runMapperSplit(split inputSplit, emitter Emitter) error {
 	for scanner.Scan() {
 		record := scanner.Text()
 		kv := splitInputRecord(record)
-		j.Map.Map(kv.Key, kv.Value, emitter)
+		j.Map.Map(ctx, kv.Key, kv.Value, emitter)
 
 		// Stop reading when end of inputSplit is reached
 		pos := bytesRead
@@ -97,7 +97,7 @@ func (j *Job) runMapperSplit(split inputSplit, emitter Emitter) error {
 }
 
 // Logic for running a single reduce task
-func (j *Job) runReducer(binID uint) error {
+func (j *Job) runReducer(ctx context.Context, binID uint) error {
 	// Determine the intermediate data files this reducer is responsible for
 	path := j.fileSystem.Join(j.outputPath, fmt.Sprintf("map-bin%d-*", binID))
 	files, err := j.fileSystem.ListFiles(path)
@@ -153,7 +153,7 @@ func (j *Job) runReducer(binID uint) error {
 
 	emitter := newReducerEmitter(emitWriter)
 	for key, values := range data {
-		if err := sem.Acquire(context.Background(), 1); err != nil {
+		if err := sem.Acquire(ctx, 1); err != nil {
 			return fmt.Errorf("failed to run reducer: failed to acquire semaphore: %s", err)
 		}
 		waitGroup.Add(1)
@@ -165,7 +165,7 @@ func (j *Job) runReducer(binID uint) error {
 
 			go func() {
 				defer waitGroup.Done()
-				j.Reduce.Reduce(key, keyIter, emitter)
+				j.Reduce.Reduce(ctx, key, keyIter, emitter)
 			}()
 
 			for _, value := range values {
