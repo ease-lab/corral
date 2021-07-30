@@ -65,10 +65,10 @@ func handleRequest(ctx context.Context, task task) (string, error) {
 	currentJob.bytesWritten = 0
 
 	if task.Phase == MapPhase {
-		err := currentJob.runMapper(task.BinID, task.Splits)
+		err := currentJob.runMapper(ctx, task.BinID, task.Splits)
 		return prepareResult(currentJob), err
 	} else if task.Phase == ReducePhase {
-		err := currentJob.runReducer(task.BinID)
+		err := currentJob.runReducer(ctx, task.BinID)
 		return prepareResult(currentJob), err
 	}
 	return "", fmt.Errorf("unknown phase: %d", task.Phase)
@@ -100,7 +100,7 @@ func loadTaskResult(payload []byte) taskResult {
 	return result
 }
 
-func (l *lambdaExecutor) RunMapper(job *Job, jobNumber int, binID uint, inputSplits []inputSplit) error {
+func (l *lambdaExecutor) RunMapper(_ context.Context, job *Job, jobNumber int, binID uint, inputSplits []inputSplit) error {
 	mapTask := task{
 		JobNumber:        jobNumber,
 		Phase:            MapPhase,
@@ -124,7 +124,7 @@ func (l *lambdaExecutor) RunMapper(job *Job, jobNumber int, binID uint, inputSpl
 	return err
 }
 
-func (l *lambdaExecutor) RunReducer(job *Job, jobNumber int, binID uint) error {
+func (l *lambdaExecutor) RunReducer(_ context.Context, job *Job, jobNumber int, binID uint) error {
 	mapTask := task{
 		JobNumber:       jobNumber,
 		Phase:           ReducePhase,

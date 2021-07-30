@@ -91,7 +91,7 @@ func TestRunLambdaMapper(t *testing.T) {
 	job := &Job{
 		config: &config{WorkingLocation: "."},
 	}
-	err := executor.RunMapper(job, 0, 10, []inputSplit{})
+	err := executor.RunMapper(context.Background(), job, 0, 10, []inputSplit{})
 	assert.Nil(t, err)
 
 	var taskPayload task
@@ -115,7 +115,7 @@ func TestRunLambdaReducer(t *testing.T) {
 	job := &Job{
 		config: &config{WorkingLocation: "."},
 	}
-	err := executor.RunReducer(job, 0, 10)
+	err := executor.RunReducer(context.Background(), job, 0, 10)
 	assert.Nil(t, err)
 
 	var taskPayload task

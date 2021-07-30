@@ -130,7 +130,7 @@ func WithInputs(inputs ...string) Option {
 	}
 }
 
-func (d *Driver) runMapPhase(job *Job, jobNumber int, inputs []string) {
+func (d *Driver) runMapPhase(ctx context.Context, job *Job, jobNumber int, inputs []string) {
 	inputSplits := job.inputSplits(inputs, d.config.SplitSize)
 	if len(inputSplits) == 0 {
 		log.Warnf("No input splits")
@@ -145,7 +145,7 @@ func (d *Driver) runMapPhase(job *Job, jobNumber int, inputs []string) {
 	var wg sync.WaitGroup
 	sem := semaphore.NewWeighted(int64(d.config.MaxConcurrency))
 	for binID, bin := range inputBins {
-		if err := sem.Acquire(context.Background(), 1); err != nil {
+		if err := sem.Acquire(ctx, 1); err != nil {
 			log.Fatal("Failed to acquire semaphore: ", err)
 		}
 		wg.Add(1)
@@ -153,7 +153,7 @@ func (d *Driver) runMapPhase(job *Job, jobNumber int, inputs []string) {
 			defer wg.Done()
 			defer sem.Release(1)
 			defer bar.Increment()
-			err := d.executor.RunMapper(job, jobNumber, bID, b)
+			err := d.executor.RunMapper(ctx, job, jobNumber, bID, b)
 			if err != nil {
 				log.Errorf("Error when running mapper %d: %s", bID, err)
 			}
@@ -163,7 +163,7 @@ func (d *Driver) runMapPhase(job *Job, jobNumber int, inputs []string) {
 	bar.Finish()
 }
 
-func (d *Driver) runReducePhase(job *Job, jobNumber int) {
+func (d *Driver) runReducePhase(ctx context.Context, job *Job, jobNumber int) {
 	var wg sync.WaitGroup
 	bar := pb.New(int(job.intermediateBins)).Prefix("Reduce").Start()
 	for binID := uint(0); binID < job.intermediateBins; binID++ {
@@ -171,7 +171,7 @@ func (d *Driver) runReducePhase(job *Job, jobNumber int) {
 		go func(bID uint) {
 			defer wg.Done()
 			defer bar.Increment()
-			err := d.executor.RunReducer(job, jobNumber, bID)
+			err := d.executor.RunReducer(ctx, job, jobNumber, bID)
 			if err != nil {
 				log.Errorf("Error when running reducer %d: %s", bID, err)
 			}
@@ -182,7 +182,7 @@ func (d *Driver) runReducePhase(job *Job, jobNumber int) {
 }
 
 // run starts the Driver
-func (d *Driver) run() {
+func (d *Driver) run(ctx context.Context) {
 	if runningInLambda() {
 		lambdaDriver = d
 		lambda.Start(handleRequest)
@@ -225,8 +225,8 @@ func (d *Driver) run() {
 		job.outputPath = jobWorkingLoc
 
 		*job.config = *d.config
-		d.runMapPhase(job, idx, inputs)
-		d.runReducePhase(job, idx)
+		d.runMapPhase(ctx, job, idx, inputs)
+		d.runReducePhase(ctx, job, idx)
 
 		// Set inputs of next job to be outputs of current job
 		inputs = []string{job.fileSystem.Join(jobWorkingLoc, "output-*")}
@@ -245,7 +245,7 @@ var undeploy = flag.Bool("undeploy", false, "Undeploy the Lambda function and IA
 var undeployKnative = flag.Bool("undeployKnative", false, "Undeploy the Knative service without running the driver")
 
 // Main starts the Driver, running the submitted jobs.
-func (d *Driver) Main() {
+func (d *Driver) Main(ctx context.Context) {
 	if viper.GetBool("verbose") {
 		log.SetLevel(log.DebugLevel)
 	}
@@ -272,7 +272,7 @@ func (d *Driver) Main() {
 	}
 
 	start := time.Now()
-	d.run()
+	d.run(ctx)
 	end := time.Now()
 	fmt.Printf("Job Execution Time: %s\n", end.Sub(start))
 

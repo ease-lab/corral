@@ -7,7 +7,6 @@ import (
 	"net"
 	"os"
 	"sync/atomic"
-	"time"
 
 	tracing "github.com/ease-lab/vhive/utils/tracing/go"
 	log "github.com/sirupsen/logrus"
@@ -49,7 +48,7 @@ func newKnativeExecutor(serviceURL string) *knativeExecutor {
 	}
 }
 
-func (k *knativeExecutor) RunMapper(job *Job, jobNumber int, binID uint, inputSplits []inputSplit) error {
+func (k *knativeExecutor) RunMapper(ctx context.Context, job *Job, jobNumber int, binID uint, inputSplits []inputSplit) error {
 	mapTask := task{
 		JobNumber:        jobNumber,
 		Phase:            MapPhase,
@@ -64,7 +63,7 @@ func (k *knativeExecutor) RunMapper(job *Job, jobNumber int, binID uint, inputSp
 		return err
 	}
 
-	resultPayload, err := k.invoke(payload)
+	resultPayload, err := k.invoke(ctx, payload)
 	taskResult := knativeLoadTaskResult(resultPayload)
 
 	atomic.AddInt64(&job.bytesRead, int64(taskResult.BytesRead))
@@ -73,7 +72,7 @@ func (k *knativeExecutor) RunMapper(job *Job, jobNumber int, binID uint, inputSp
 	return err
 }
 
-func (k *knativeExecutor) RunReducer(job *Job, jobNumber int, binID uint) error {
+func (k *knativeExecutor) RunReducer(ctx context.Context, job *Job, jobNumber int, binID uint) error {
 	mapTask := task{
 		JobNumber:       jobNumber,
 		Phase:           ReducePhase,
@@ -87,7 +86,7 @@ func (k *knativeExecutor) RunReducer(job *Job, jobNumber int, binID uint) error 
 		return err
 	}
 
-	resultPayload, err := k.invoke(payload)
+	resultPayload, err := k.invoke(ctx, payload)
 	taskResult := knativeLoadTaskResult(resultPayload)
 
 	atomic.AddInt64(&job.bytesRead, int64(taskResult.BytesRead))
@@ -133,13 +132,13 @@ func (k *knativeExecutor) Start() {
 	}
 }
 
-func (cs *corralServer) Invoke(_ context.Context, req *CorralRequest) (*CorralResponse, error) {
+func (cs *corralServer) Invoke(ctx context.Context, req *CorralRequest) (*CorralResponse, error) {
 	var task task
 	if err := json.Unmarshal(req.Payload, &task); err != nil {
 		log.Error("Failed to unmarshal: ", err)
 		return nil, err
 	}
-	s, err := knativeHandleRequest(task)
+	s, err := knativeHandleRequest(ctx, task)
 	if err != nil {
 		log.Error("Failed to handle request: ", err)
 		return nil, err
@@ -147,7 +146,7 @@ func (cs *corralServer) Invoke(_ context.Context, req *CorralRequest) (*CorralRe
 	return &CorralResponse{Payload: []byte(s)}, nil
 }
 
-func knativeHandleRequest(task task) (string, error) {
+func knativeHandleRequest(ctx context.Context, task task) (string, error) {
 	// Setup current job
 	fs := corfs.InitFilesystem(task.FileSystemType)
 	currentJob := knativeDriver.jobs[task.JobNumber]
@@ -157,10 +156,10 @@ func knativeHandleRequest(task task) (string, error) {
 	currentJob.config.Cleanup = task.Cleanup
 
 	if task.Phase == MapPhase {
-		err := currentJob.runMapper(task.BinID, task.Splits)
+		err := currentJob.runMapper(ctx, task.BinID, task.Splits)
 		return prepareResult(currentJob), err
 	} else if task.Phase == ReducePhase {
-		err := currentJob.runReducer(task.BinID)
+		err := currentJob.runReducer(ctx, task.BinID)
 		return prepareResult(currentJob), err
 	}
 	return "", fmt.Errorf("unknown phase: %d", task.Phase)
@@ -175,7 +174,7 @@ func knativeLoadTaskResult(payload []byte) taskResult {
 	return result
 }
 
-func (k *knativeExecutor) invoke(payload []byte) (outputPayload []byte, err error) {
+func (k *knativeExecutor) invoke(ctx context.Context, payload []byte) (outputPayload []byte, err error) {
 	dialOptions := []grpc.DialOption{grpc.WithBlock(), grpc.WithInsecure()}
 	if tracing.IsTracingEnabled() {
 		dialOptions = append(dialOptions, grpc.WithUnaryInterceptor(otelgrpc.UnaryClientInterceptor()))
@@ -187,9 +186,6 @@ func (k *knativeExecutor) invoke(payload []byte) (outputPayload []byte, err erro
 	defer conn.Close()
 
 	client := NewCorralClient(conn)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 	resp, err := client.Invoke(ctx, &CorralRequest{
 		Payload: payload,
 	})

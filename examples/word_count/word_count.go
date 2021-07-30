@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -11,7 +12,7 @@ import (
 
 type wordCount struct{}
 
-func (w wordCount) Map(key, value string, emitter corral.Emitter) {
+func (w wordCount) Map(ctx context.Context, key, value string, emitter corral.Emitter) {
 	re := regexp.MustCompile("[^a-zA-Z0-9\\s]+")
 
 	sanitized := strings.ToLower(re.ReplaceAllString(value, " "))
@@ -19,19 +20,19 @@ func (w wordCount) Map(key, value string, emitter corral.Emitter) {
 		if len(word) == 0 {
 			continue
 		}
-		err := emitter.Emit(word, strconv.Itoa(1))
+		err := emitter.Emit(ctx, word, strconv.Itoa(1))
 		if err != nil {
 			fmt.Println(err)
 		}
 	}
 }
 
-func (w wordCount) Reduce(key string, values corral.ValueIterator, emitter corral.Emitter) {
+func (w wordCount) Reduce(ctx context.Context, key string, values corral.ValueIterator, emitter corral.Emitter) {
 	count := 0
 	for range values.Iter() {
 		count++
 	}
-	emitter.Emit(key, strconv.Itoa(count))
+	emitter.Emit(ctx, key, strconv.Itoa(count))
 }
 
 func main() {
@@ -43,5 +44,5 @@ func main() {
 	}
 
 	driver := corral.NewDriver(job, options...)
-	driver.Main()
+	driver.Main(context.Background())
 }

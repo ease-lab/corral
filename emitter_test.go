@@ -2,6 +2,7 @@ package corral
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -31,7 +32,7 @@ func TestReducerEmitter(t *testing.T) {
 	writer := &testWriteCloser{new(bytes.Buffer)}
 	emitter := newReducerEmitter(writer)
 
-	err := emitter.Emit("key", "value")
+	err := emitter.Emit(context.Background(), "key", "value")
 	assert.Nil(t, err)
 
 	written, err := ioutil.ReadAll(writer)
@@ -51,7 +52,7 @@ func TestReducerEmitterThreadSafety(t *testing.T) {
 		wg.Add(1)
 		go func(key int) {
 			defer wg.Done()
-			err := emitter.Emit(fmt.Sprint(key), "value")
+			err := emitter.Emit(context.Background(), fmt.Sprint(key), "value")
 			assert.Nil(t, err)
 		}(i)
 	}
@@ -108,13 +109,13 @@ func TestMapperEmitter(t *testing.T) {
 	var fs corfs.FileSystem = mFs
 	emitter := newMapperEmitter(3, 0, "out", fs)
 
-	err := emitter.Emit("key1", "val1")
+	err := emitter.Emit(context.Background(), "key1", "val1")
 	assert.Nil(t, err)
 
-	err = emitter.Emit("key123", "val2")
+	err = emitter.Emit(context.Background(), "key123", "val2")
 	assert.Nil(t, err)
 
-	err = emitter.Emit("key359", "val3")
+	err = emitter.Emit(context.Background(), "key359", "val3")
 	assert.Nil(t, err)
 
 	assert.Len(t, mFs.writers, 3)
@@ -137,13 +138,13 @@ func TestMapperEmitterCustomPartition(t *testing.T) {
 		return numBuckets - 1
 	}
 
-	err := emitter.Emit("a", "val1")
+	err := emitter.Emit(context.Background(), "a", "val1")
 	assert.Nil(t, err)
 
-	err = emitter.Emit("a", "val2")
+	err = emitter.Emit(context.Background(), "a", "val2")
 	assert.Nil(t, err)
 
-	err = emitter.Emit("b", "val3")
+	err = emitter.Emit(context.Background(), "b", "val3")
 	assert.Nil(t, err)
 
 	assert.Len(t, mFs.writers, 2)

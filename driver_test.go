@@ -1,6 +1,7 @@
 package corral
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -30,20 +31,20 @@ func TestNewDriver(t *testing.T) {
 
 type testWCJob struct{}
 
-func (testWCJob) Map(key, value string, emitter Emitter) {
+func (testWCJob) Map(ctx context.Context, key, value string, emitter Emitter) {
 	for _, word := range strings.Fields(value) {
-		if err := emitter.Emit(word, "1"); err != nil {
+		if err := emitter.Emit(ctx, word, "1"); err != nil {
 			panic(err)
 		}
 	}
 }
 
-func (testWCJob) Reduce(key string, values ValueIterator, emitter Emitter) {
+func (testWCJob) Reduce(ctx context.Context, key string, values ValueIterator, emitter Emitter) {
 	count := 0
 	for range values.Iter() {
 		count++
 	}
-	if err := emitter.Emit(key, fmt.Sprintf("%d", count)); err != nil {
+	if err := emitter.Emit(ctx, key, fmt.Sprintf("%d", count)); err != nil {
 		panic(err)
 	}
 }
@@ -52,18 +53,18 @@ type testFilterJob struct {
 	prefix string
 }
 
-func (j *testFilterJob) Map(key, value string, emitter Emitter) {
+func (j *testFilterJob) Map(ctx context.Context, key, value string, emitter Emitter) {
 	if strings.HasPrefix(key, j.prefix) {
-		if err := emitter.Emit(key, value); err != nil {
+		if err := emitter.Emit(ctx, key, value); err != nil {
 			panic(err)
 		}
 	}
 }
 
-func (j *testFilterJob) Reduce(key string, values ValueIterator, emitter Emitter) {
+func (j *testFilterJob) Reduce(ctx context.Context, key string, values ValueIterator, emitter Emitter) {
 	// Identity reducer
 	for value := range values.Iter() {
-		if err := emitter.Emit(key, value); err != nil {
+		if err := emitter.Emit(ctx, key, value); err != nil {
 			panic(err)
 		}
 	}
@@ -101,7 +102,7 @@ func TestLocalMapReduce(t *testing.T) {
 		WithWorkingLocation(tmpdir),
 	)
 
-	driver.Main()
+	driver.Main(context.Background())
 
 	output, err := ioutil.ReadFile(filepath.Join(tmpdir, "output-part-0"))
 	assert.Nil(t, err)
@@ -142,7 +143,7 @@ func TestLocalMultiJob(t *testing.T) {
 		WithWorkingLocation(tmpdir),
 	)
 
-	driver.Main()
+	driver.Main(context.Background())
 
 	output, err := ioutil.ReadFile(filepath.Join(tmpdir, "job1", "output-part-0"))
 	assert.Nil(t, err)
@@ -167,32 +168,32 @@ func TestLocalNoCrashOnNoResolvedInputFiles(t *testing.T) {
 		WithWorkingLocation("some_file"),
 	)
 
-	driver.Main()
+	driver.Main(context.Background())
 }
 
 type statefulJob struct {
 	filterWords *[]string
 }
 
-func (s statefulJob) Map(key, value string, emitter Emitter) {
+func (s statefulJob) Map(ctx context.Context, key, value string, emitter Emitter) {
 	for _, word := range strings.Fields(value) {
 		for _, filterWord := range *s.filterWords {
 			if filterWord != word {
 				continue
 			}
-			if err := emitter.Emit(word, "1"); err != nil {
+			if err := emitter.Emit(ctx, word, "1"); err != nil {
 				panic(err)
 			}
 		}
 	}
 }
 
-func (statefulJob) Reduce(key string, values ValueIterator, emitter Emitter) {
+func (statefulJob) Reduce(ctx context.Context, key string, values ValueIterator, emitter Emitter) {
 	count := 0
 	for range values.Iter() {
 		count++
 	}
-	if err := emitter.Emit(key, fmt.Sprintf("%d", count)); err != nil {
+	if err := emitter.Emit(ctx, key, fmt.Sprintf("%d", count)); err != nil {
 		panic(err)
 	}
 }
@@ -213,7 +214,7 @@ func TestLocalStructFieldMapReduce(t *testing.T) {
 		WithWorkingLocation(tmpdir),
 	)
 
-	driver.Main()
+	driver.Main(context.Background())
 
 	output, err := ioutil.ReadFile(filepath.Join(tmpdir, "output-part-0"))
 	assert.Nil(t, err)
