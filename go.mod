@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/aws/aws-lambda-go v1.25.0
-	github.com/aws/aws-sdk-go v1.40.7
+	github.com/aws/aws-sdk-go v1.40.12
 	github.com/dustin/go-humanize v1.0.0
 	github.com/ease-lab/vhive/utils/tracing/go v0.0.0-20210727103631-f5f1ba9920c2
 	github.com/hashicorp/golang-lru v0.5.4
