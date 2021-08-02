@@ -109,6 +109,6 @@ func (l *LocalFileSystem) Join(elem ...string) string {
 }
 
 // Delete deletes the file at filePath.
-func (l *LocalFileSystem) Delete(filePath string) error {
-	return os.Remove(filePath)
-}
+// func (l *LocalFileSystem) Delete(filePath string) error {
+// 	return os.Remove(filePath)
+// }

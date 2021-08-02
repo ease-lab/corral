@@ -194,19 +194,19 @@ func (s *S3FileSystem) Init() error {
 }
 
 // Delete deletes the file at filePath.
-func (s *S3FileSystem) Delete(filePath string) error {
-	parsed, err := parseS3URI(filePath)
-	if err != nil {
-		return err
-	}
+// func (s *S3FileSystem) Delete(filePath string) error {
+// 	parsed, err := parseS3URI(filePath)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	params := &s3.DeleteObjectInput{
-		Bucket: aws.String(parsed.Hostname()),
-		Key:    aws.String(parsed.Path),
-	}
-	_, err = s.s3Client.DeleteObject(params)
-	return err
-}
+// 	params := &s3.DeleteObjectInput{
+// 		Bucket: aws.String(parsed.Hostname()),
+// 		Key:    aws.String(parsed.Path),
+// 	}
+// 	_, err = s.s3Client.DeleteObject(params)
+// 	return err
+// }
 
 // Join joins file path elements
 func (s *S3FileSystem) Join(elem ...string) string {

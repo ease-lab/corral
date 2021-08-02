@@ -26,13 +26,13 @@ func getS3TestBackend(t *testing.T) (string, *S3FileSystem) {
 
 func cleanup(backend *S3FileSystem, t *testing.T) {
 	bucket := os.Getenv("AWS_TEST_BUCKET")
-	objects, err := backend.ListFiles("s3://" + bucket + "/")
+	_, err := backend.ListFiles("s3://" + bucket + "/")
 
 	assert.Nil(t, err)
-	for _, obj := range objects {
-		err = backend.Delete(obj.Name)
-		assert.Nil(t, err)
-	}
+	// for _, obj := range objects {
+	// 	err = backend.Delete(obj.Name)
+	// 	assert.Nil(t, err)
+	// }
 }
 
 func TestS3ImplementsFileSystem(t *testing.T) {

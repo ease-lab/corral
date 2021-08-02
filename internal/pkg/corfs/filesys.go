@@ -24,7 +24,7 @@ type FileSystem interface {
 	Stat(filePath string) (FileInfo, error)
 	OpenReader(filePath string, startAt int64) (io.ReadCloser, error)
 	OpenWriter(filePath string) (io.WriteCloser, error)
-	Delete(filePath string) error
+	// Delete(filePath string) error
 	Join(elem ...string) string
 	Init() error
 }
