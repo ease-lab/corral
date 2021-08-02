@@ -113,11 +113,12 @@ func (j *Job) runReducer(ctx context.Context, binID uint) error {
 
 	// Open emitter for output data
 	path = j.fileSystem.Join(j.outputPath, fmt.Sprintf("output-part-%d", binID))
-	emitWriter, err := j.fileSystem.OpenWriter(path)
-	if err != nil {
-		return err
-	}
-	defer emitWriter.Close()
+	// emitWriter, err := j.fileSystem.OpenWriter(path)
+	// if err != nil {
+	// 	return err
+	// }
+	// defer emitWriter.Close()
+	buffer := new(bytes.Buffer)
 
 	data := make(map[string][]string)
 	var bytesRead int64
@@ -163,7 +164,7 @@ func (j *Job) runReducer(ctx context.Context, binID uint) error {
 	var waitGroup sync.WaitGroup
 	sem := semaphore.NewWeighted(10)
 
-	emitter := newReducerEmitter(emitWriter)
+	emitter := newReducerEmitter(buffer)
 	for key, values := range data {
 		if err := sem.Acquire(ctx, 1); err != nil {
 			return fmt.Errorf("failed to run reducer: failed to acquire semaphore: %s", err)
@@ -193,7 +194,7 @@ func (j *Job) runReducer(ctx context.Context, binID uint) error {
 	atomic.AddInt64(&j.bytesWritten, emitter.bytesWritten())
 	atomic.AddInt64(&j.bytesRead, bytesRead)
 
-	return nil
+	return j.fileSystem.WriteFile(path, buffer.Bytes())
 }
 
 // inputSplits calculates all input files' inputSplits.

@@ -86,18 +86,32 @@ func (l *LocalFileSystem) ReadFile(filePath string, startAt int64) ([]byte, erro
 }
 
 // OpenWriter opens a writer to the file at filePath.
-func (l *LocalFileSystem) OpenWriter(filePath string) (io.WriteCloser, error) {
+// func (l *LocalFileSystem) OpenWriter(filePath string) (io.WriteCloser, error) {
+// 	dir := filepath.Dir(filePath)
+
+// 	// Create writer directory if necessary
+// 	_, err := os.Stat(dir)
+// 	if os.IsNotExist(err) {
+// 		if err := os.MkdirAll(dir, 0777); err != nil {
+// 			return nil, err
+// 		}
+// 	}
+
+// 	return os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+// }
+
+func (l *LocalFileSystem) WriteFile(filePath string, contents []byte) error {
 	dir := filepath.Dir(filePath)
 
 	// Create writer directory if necessary
 	_, err := os.Stat(dir)
 	if os.IsNotExist(err) {
 		if err := os.MkdirAll(dir, 0777); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	return os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	return ioutil.WriteFile(filePath, contents, 0600)
 }
 
 // Stat returns information about the file at filePath.

@@ -1,8 +1,8 @@
 package corfs
 
 import (
+	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/mattetti/filebuffer"
 )
 
 var validS3Schemes = map[string]bool{
@@ -145,21 +144,35 @@ func (s *S3FileSystem) ReadFile(filePath string, startAt int64) ([]byte, error) 
 }
 
 // OpenWriter opens a writer to the file at filePath.
-func (s *S3FileSystem) OpenWriter(filePath string) (io.WriteCloser, error) {
+// func (s *S3FileSystem) OpenWriter(filePath string) (io.WriteCloser, error) {
+// 	parsed, err := parseS3URI(filePath)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	writer := &s3Writer{
+// 		client:         s.s3Client,
+// 		bucket:         parsed.Hostname(),
+// 		key:            parsed.Path,
+// 		buf:            filebuffer.New(nil),
+// 		complatedParts: []*s3.CompletedPart{},
+// 	}
+// 	err = writer.Init()
+// 	return writer, err
+// }
+
+func (s *S3FileSystem) WriteFile(filePath string, contents []byte) error {
 	parsed, err := parseS3URI(filePath)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	writer := &s3Writer{
-		client:         s.s3Client,
-		bucket:         parsed.Hostname(),
-		key:            parsed.Path,
-		buf:            filebuffer.New(nil),
-		complatedParts: []*s3.CompletedPart{},
+	params := &s3.PutObjectInput{
+		Bucket: aws.String(parsed.Hostname()),
+		Key:    aws.String(parsed.Path),
+		Body:   bytes.NewReader(contents),
 	}
-	err = writer.Init()
-	return writer, err
+	_, err = s.s3Client.PutObject(params)
+	return err
 }
 
 // Stat returns information about the file at filePath.

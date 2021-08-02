@@ -1,7 +1,6 @@
 package corfs
 
 import (
-	"io"
 	"log"
 	"strings"
 )
@@ -24,7 +23,8 @@ type FileSystem interface {
 	// Stat(filePath string) (FileInfo, error)
 	// OpenReader(filePath string, startAt int64) (io.ReadCloser, error)
 	ReadFile(filePath string, startAt int64) ([]byte, error)
-	OpenWriter(filePath string) (io.WriteCloser, error)
+	// OpenWriter(filePath string) (io.WriteCloser, error)
+	WriteFile(filePath string, contents []byte) error
 	// Delete(filePath string) error
 	Join(elem ...string) string
 	Init() error

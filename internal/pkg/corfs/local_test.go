@@ -68,7 +68,7 @@ func TestLocalReadFile(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestLocalOpenWriter(t *testing.T) {
+func TestLocalWriteFile(t *testing.T) {
 	tmpdir, err := ioutil.TempDir("", "test")
 	defer os.RemoveAll(tmpdir)
 	assert.Nil(t, err)
@@ -77,11 +77,13 @@ func TestLocalOpenWriter(t *testing.T) {
 
 	path := filepath.Join(tmpdir, "tmpfile")
 
-	writer, err := fs.OpenWriter(path)
-	assert.Nil(t, err)
+	// writer, err := fs.OpenWriter(path)
+	// assert.Nil(t, err)
 
-	n, err := writer.Write([]byte("foo bar baz"))
-	assert.Equal(t, 11, n)
+	// n, err := writer.Write([]byte("foo bar baz"))
+	// assert.Equal(t, 11, n)
+	// assert.Nil(t, err)
+	err = fs.WriteFile(path, []byte("foo bar baz"))
 	assert.Nil(t, err)
 
 	contents, err := ioutil.ReadFile(path)
@@ -116,13 +118,15 @@ func TestLocalCreateIntermediateDirectory(t *testing.T) {
 
 	fs := LocalFileSystem{}
 
-	writer, err := fs.OpenWriter(path)
-	assert.Nil(t, err)
+	// writer, err := fs.OpenWriter(path)
+	// assert.Nil(t, err)
 
-	_, err = writer.Write([]byte("foo"))
-	assert.Nil(t, err)
+	// _, err = writer.Write([]byte("foo"))
+	// assert.Nil(t, err)
 
-	assert.Nil(t, writer.Close())
+	// assert.Nil(t, writer.Close())
+	err = fs.WriteFile(path, []byte("foo"))
+	assert.Nil(t, err)
 
 	stat, err := os.Stat(filepath.Join(tmpdir, "additionalFolder"))
 	assert.Nil(t, err)
