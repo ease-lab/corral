@@ -104,7 +104,7 @@ jobs:
 
       - name: Start Daemon
         run: |
-          docker run --env AWS_REGION="us-west-1" --env AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" --env AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" --env KNATIVE=1 -p 31080:80 --rm vhiveease/word_count:local --verbose --out s3://vhive-corral-bench/word_count/e2e-knative-local/out --knative &
+          docker run --name corral-word-count --env AWS_REGION="us-west-1" --env AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" --env AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" --env KNATIVE=1 -p 31080:80 --rm vhiveease/word_count:local --verbose --out s3://vhive-corral-bench/word_count/e2e-knative-local/out --knative &
 
       - name: Test
         working-directory: examples/word_count
@@ -112,6 +112,9 @@ jobs:
           CORRAL_KNATIVESERVICEURL: 127.0.0.1:31080
         run: |
           ./bin/word_count --verbose --out s3://vhive-corral-bench/word_count/e2e-knative-local/out --knative s3://vhive-corral-bench/word_count/sample-inputs/metamorphosis.txt
+
+      - name: Inspect
+        run: docker logs --timestamps -n all corral-word-count
 
       - name: Verify
         working-directory: examples/word_count
