@@ -22,7 +22,8 @@ const (
 type FileSystem interface {
 	ListFiles(pathGlob string) ([]FileInfo, error)
 	Stat(filePath string) (FileInfo, error)
-	OpenReader(filePath string, startAt int64) (io.ReadCloser, error)
+	// OpenReader(filePath string, startAt int64) (io.ReadCloser, error)
+	ReadFile(filePath string, startAt int64) ([]byte, error)
 	OpenWriter(filePath string) (io.WriteCloser, error)
 	// Delete(filePath string) error
 	Join(elem ...string) string

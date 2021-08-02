@@ -59,14 +59,17 @@ func TestS3ReaderWriter(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Test reader starting at beginning of file
-	reader, err := backend.OpenReader(path, 0)
+	// reader, err := backend.OpenReader(path, 0)
+	// assert.Nil(t, err)
+
+	// contents, err := ioutil.ReadAll(reader)
+	// assert.Nil(t, err)
+	contents, err := backend.ReadFile(path, 0)
 	assert.Nil(t, err)
 
-	contents, err := ioutil.ReadAll(reader)
-	assert.Nil(t, err)
 	assert.Equal(t, "foo bar baz", string(contents))
 
-	err = reader.Close()
+	// err = reader.Close()
 	assert.Nil(t, err)
 }
 
@@ -87,14 +90,17 @@ func TestS3ReaderWriterWithOffset(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Test reader starting in middle of file
-	reader, err := backend.OpenReader(path, 4)
+	// reader, err := backend.OpenReader(path, 4)
+	// assert.Nil(t, err)
+
+	// contents, err := ioutil.ReadAll(reader)
+	// assert.Nil(t, err)
+	contents, err := backend.ReadFile(path, 4)
 	assert.Nil(t, err)
 
-	contents, err := ioutil.ReadAll(reader)
-	assert.Nil(t, err)
 	assert.Equal(t, "bar baz", string(contents))
 
-	err = reader.Close()
+	// err = reader.Close()
 	assert.Nil(t, err)
 }
 

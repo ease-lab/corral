@@ -34,7 +34,7 @@ func TestLocalListFiles(t *testing.T) {
 	assert.Equal(t, tmpFilePath, files[0].Name)
 }
 
-func TestLocalOpenReader(t *testing.T) {
+func TestLocalReadFile(t *testing.T) {
 	tmpdir, err := ioutil.TempDir("", "test")
 	defer os.RemoveAll(tmpdir)
 	assert.Nil(t, err)
@@ -46,23 +46,25 @@ func TestLocalOpenReader(t *testing.T) {
 	path := filepath.Join(tmpdir, "tmpfile")
 
 	// Test reader that begins at beginning of file
-	reader, err := fs.OpenReader(path, 0)
+	// reader, err := fs.OpenReader(path, 0)
+	contents, err := fs.ReadFile(path, 0)
 	assert.Nil(t, err)
 
-	contents, err := ioutil.ReadAll(reader)
-	assert.Nil(t, err)
+	// contents, err := ioutil.ReadAll(reader)
+	// assert.Nil(t, err)
 	assert.Equal(t, []byte("foo bar baz"), contents)
-	err = reader.Close()
+	// err = reader.Close()
 	assert.Nil(t, err)
 
 	// Test reader that begins in the middle of a file
-	reader, err = fs.OpenReader(path, 4)
+	// reader, err = fs.OpenReader(path, 4)
+	contents, err = fs.ReadFile(path, 4)
 	assert.Nil(t, err)
 
-	contents, err = ioutil.ReadAll(reader)
-	assert.Nil(t, err)
+	// contents, err = ioutil.ReadAll(reader)
+	// assert.Nil(t, err)
 	assert.Equal(t, []byte("bar baz"), contents)
-	err = reader.Close()
+	// err = reader.Close()
 	assert.Nil(t, err)
 }
 

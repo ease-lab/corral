@@ -2,6 +2,7 @@ package corral
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -65,12 +66,17 @@ func splitInputRecord(record string) *keyValue {
 
 // runMapperSplit runs the mapper on a single inputSplit
 func (j *Job) runMapperSplit(ctx context.Context, split inputSplit, emitter Emitter) error {
-	inputSource, err := j.fileSystem.OpenReader(split.Filename, split.StartOffset)
+	// inputSource, err := j.fileSystem.OpenReader(split.Filename, split.StartOffset)
+	// if err != nil {
+	// 	return err
+	// }
+	input, err := j.fileSystem.ReadFile(split.Filename, split.StartOffset)
 	if err != nil {
 		return err
 	}
 
-	scanner := bufio.NewScanner(inputSource)
+	// scanner := bufio.NewScanner(inputSource)
+	scanner := bufio.NewScanner(bytes.NewReader(input))
 	var bytesRead int64
 	splitter := countingSplitFunc(bufio.ScanLines, &bytesRead)
 	scanner.Split(splitter)
@@ -117,11 +123,17 @@ func (j *Job) runReducer(ctx context.Context, binID uint) error {
 	var bytesRead int64
 
 	for _, file := range files {
-		reader, err := j.fileSystem.OpenReader(file.Name, 0)
-		bytesRead += file.Size
+		// reader, err := j.fileSystem.OpenReader(file.Name, 0)
+		// bytesRead += file.Size
+		// if err != nil {
+		// 	return err
+		// }
+		fileContent, err := j.fileSystem.ReadFile(file.Name, 0)
+		bytesRead += int64(len(fileContent))
 		if err != nil {
 			return err
 		}
+		reader := bytes.NewReader(fileContent)
 
 		// Feed intermediate data into reducers
 		decoder := json.NewDecoder(reader)
@@ -137,7 +149,7 @@ func (j *Job) runReducer(ctx context.Context, binID uint) error {
 
 			data[kv.Key] = append(data[kv.Key], kv.Value)
 		}
-		reader.Close()
+		// reader.Close()
 
 		// Delete intermediate map data
 		// if j.config.Cleanup {

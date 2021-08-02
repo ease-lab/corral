@@ -2,6 +2,7 @@ package corfs
 
 import (
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -62,13 +63,26 @@ func (l *LocalFileSystem) ListFiles(pathGlob string) ([]FileInfo, error) {
 
 // OpenReader opens a reader to the file at filePath. The reader
 // is initially seeked to "startAt" bytes into the file.
-func (l *LocalFileSystem) OpenReader(filePath string, startAt int64) (io.ReadCloser, error) {
+// func (l *LocalFileSystem) OpenReader(filePath string, startAt int64) (io.ReadCloser, error) {
+// 	file, err := os.OpenFile(filePath, os.O_RDONLY, 0600)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	_, err = file.Seek(startAt, io.SeekStart)
+// 	return file, err
+// }
+
+// ReadFile reads the file at filePath skipping startAt bytes at the
+// beginning.
+func (l *LocalFileSystem) ReadFile(filePath string, startAt int64) ([]byte, error) {
 	file, err := os.OpenFile(filePath, os.O_RDONLY, 0600)
 	if err != nil {
 		return nil, err
 	}
-	_, err = file.Seek(startAt, io.SeekStart)
-	return file, err
+	if _, err = file.Seek(startAt, io.SeekStart); err != nil {
+		return nil, err
+	}
+	return ioutil.ReadAll(file)
 }
 
 // OpenWriter opens a writer to the file at filePath.

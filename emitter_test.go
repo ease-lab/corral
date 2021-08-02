@@ -79,8 +79,12 @@ func (m *mockFs) ListFiles(string) ([]corfs.FileInfo, error) {
 	return []corfs.FileInfo{}, nil
 }
 
-func (m *mockFs) OpenReader(filePath string, startAt int64) (io.ReadCloser, error) {
-	return ioutil.NopCloser(new(bytes.Buffer)), nil
+// func (m *mockFs) OpenReader(filePath string, startAt int64) (io.ReadCloser, error) {
+// 	return ioutil.NopCloser(new(bytes.Buffer)), nil
+// }
+
+func (m *mockFs) ReadFile(filePath string, startAt int64) ([]byte, error) {
+	return []byte(""), nil
 }
 
 func (m *mockFs) OpenWriter(filePath string) (io.WriteCloser, error) {

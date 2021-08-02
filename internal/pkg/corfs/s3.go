@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -102,27 +103,46 @@ func (s *S3FileSystem) ListFiles(pathGlob string) ([]FileInfo, error) {
 
 // OpenReader opens a reader to the file at filePath. The reader
 // is initially seeked to "startAt" bytes into the file.
-func (s *S3FileSystem) OpenReader(filePath string, startAt int64) (io.ReadCloser, error) {
+// func (s *S3FileSystem) OpenReader(filePath string, startAt int64) (io.ReadCloser, error) {
+// 	parsed, err := parseS3URI(filePath)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	objStat, err := s.Stat(filePath)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	reader := &s3Reader{
+// 		client:    s.s3Client,
+// 		bucket:    parsed.Hostname(),
+// 		key:       parsed.Path,
+// 		offset:    startAt,
+// 		chunkSize: 20 * 1024 * 1024, // 20 Mb chunk size
+// 		totalSize: objStat.Size,
+// 	}
+// 	err = reader.loadNextChunk()
+// 	return reader, err
+// }
+
+// ReadFile reads the file at filePath skipping startAt bytes at the
+// beginning.
+func (s *S3FileSystem) ReadFile(filePath string, startAt int64) ([]byte, error) {
 	parsed, err := parseS3URI(filePath)
 	if err != nil {
 		return nil, err
 	}
-
-	objStat, err := s.Stat(filePath)
+	params := &s3.GetObjectInput{
+		Bucket: aws.String(parsed.Hostname()),
+		Key:    aws.String(parsed.Path),
+		Range:  aws.String(fmt.Sprintf("bytes=%d-", startAt)),
+	}
+	output, err := s.s3Client.GetObject(params)
 	if err != nil {
 		return nil, err
 	}
-
-	reader := &s3Reader{
-		client:    s.s3Client,
-		bucket:    parsed.Hostname(),
-		key:       parsed.Path,
-		offset:    startAt,
-		chunkSize: 20 * 1024 * 1024, // 20 Mb chunk size
-		totalSize: objStat.Size,
-	}
-	err = reader.loadNextChunk()
-	return reader, err
+	return ioutil.ReadAll(output.Body)
 }
 
 // OpenWriter opens a writer to the file at filePath.
