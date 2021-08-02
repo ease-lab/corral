@@ -89,23 +89,23 @@ func TestLocalOpenWriter(t *testing.T) {
 	assert.Equal(t, []byte("foo bar baz"), contents)
 }
 
-func TestLocalStat(t *testing.T) {
-	tmpdir, err := ioutil.TempDir("", "test")
-	defer os.RemoveAll(tmpdir)
-	assert.Nil(t, err)
+// func TestLocalStat(t *testing.T) {
+// 	tmpdir, err := ioutil.TempDir("", "test")
+// 	defer os.RemoveAll(tmpdir)
+// 	assert.Nil(t, err)
 
-	path := path.Join(tmpdir, "tmpfile")
+// 	path := path.Join(tmpdir, "tmpfile")
 
-	assert.NoError(t, ioutil.WriteFile(path, []byte("foo"), 0777))
+// 	assert.NoError(t, ioutil.WriteFile(path, []byte("foo"), 0777))
 
-	fs := LocalFileSystem{}
+// 	fs := LocalFileSystem{}
 
-	fInfo, err := fs.Stat(path)
-	assert.Nil(t, err)
+// 	fInfo, err := fs.Stat(path)
+// 	assert.Nil(t, err)
 
-	assert.Equal(t, path, fInfo.Name)
-	assert.Equal(t, int64(3), fInfo.Size)
-}
+// 	assert.Equal(t, path, fInfo.Name)
+// 	assert.Equal(t, int64(3), fInfo.Size)
+// }
 
 func TestLocalCreateIntermediateDirectory(t *testing.T) {
 	tmpdir, err := ioutil.TempDir("", "test")

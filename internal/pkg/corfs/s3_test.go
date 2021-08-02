@@ -158,26 +158,26 @@ func TestS3ListGlob(t *testing.T) {
 	}
 }
 
-func TestS3Stat(t *testing.T) {
-	bucket, backend := getS3TestBackend(t)
-	defer cleanup(backend, t)
+// func TestS3Stat(t *testing.T) {
+// 	bucket, backend := getS3TestBackend(t)
+// 	defer cleanup(backend, t)
 
-	path := bucket + "/testobj"
+// 	path := bucket + "/testobj"
 
-	writer, err := backend.OpenWriter(path)
-	assert.Nil(t, err)
+// 	writer, err := backend.OpenWriter(path)
+// 	assert.Nil(t, err)
 
-	_, err = writer.Write([]byte("foo bar baz"))
-	assert.Nil(t, err)
-	err = writer.Close()
-	assert.Nil(t, err)
+// 	_, err = writer.Write([]byte("foo bar baz"))
+// 	assert.Nil(t, err)
+// 	err = writer.Close()
+// 	assert.Nil(t, err)
 
-	file, err := backend.Stat(path)
-	assert.Nil(t, err)
+// 	file, err := backend.Stat(path)
+// 	assert.Nil(t, err)
 
-	assert.Equal(t, path, file.Name)
-	assert.Equal(t, int64(11), file.Size)
-}
+// 	assert.Equal(t, path, file.Name)
+// 	assert.Equal(t, int64(11), file.Size)
+// }
 
 func TestS3Join(t *testing.T) {
 	_, backend := getS3TestBackend(t)

@@ -95,12 +95,12 @@ func (m *mockFs) OpenWriter(filePath string) (io.WriteCloser, error) {
 	return m.writers[filePath], nil
 }
 
-func (m *mockFs) Stat(filePath string) (corfs.FileInfo, error) {
-	return corfs.FileInfo{
-		Name: filePath,
-		Size: 0,
-	}, nil
-}
+// func (m *mockFs) Stat(filePath string) (corfs.FileInfo, error) {
+// 	return corfs.FileInfo{
+// 		Name: filePath,
+// 		Size: 0,
+// 	}, nil
+// }
 
 func (m *mockFs) Init() error { return nil }
 

@@ -101,16 +101,16 @@ func (l *LocalFileSystem) OpenWriter(filePath string) (io.WriteCloser, error) {
 }
 
 // Stat returns information about the file at filePath.
-func (l *LocalFileSystem) Stat(filePath string) (FileInfo, error) {
-	fInfo, err := os.Stat(filePath)
-	if err != nil {
-		return FileInfo{}, err
-	}
-	return FileInfo{
-		Name: filePath,
-		Size: fInfo.Size(),
-	}, nil
-}
+// func (l *LocalFileSystem) Stat(filePath string) (FileInfo, error) {
+// 	fInfo, err := os.Stat(filePath)
+// 	if err != nil {
+// 		return FileInfo{}, err
+// 	}
+// 	return FileInfo{
+// 		Name: filePath,
+// 		Size: fInfo.Size(),
+// 	}, nil
+// }
 
 // Init initializes the filesystem.
 func (l *LocalFileSystem) Init() error {

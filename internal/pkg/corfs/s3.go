@@ -1,7 +1,6 @@
 package corfs
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -164,40 +163,40 @@ func (s *S3FileSystem) OpenWriter(filePath string) (io.WriteCloser, error) {
 }
 
 // Stat returns information about the file at filePath.
-func (s *S3FileSystem) Stat(filePath string) (FileInfo, error) {
-	if object, exists := s.objectCache.Get(filePath); exists {
-		return FileInfo{
-			Name: filePath,
-			Size: *object.(*s3.Object).Size,
-		}, nil
-	}
+// func (s *S3FileSystem) Stat(filePath string) (FileInfo, error) {
+// 	if object, exists := s.objectCache.Get(filePath); exists {
+// 		return FileInfo{
+// 			Name: filePath,
+// 			Size: *object.(*s3.Object).Size,
+// 		}, nil
+// 	}
 
-	parsed, err := parseS3URI(filePath)
-	if err != nil {
-		return FileInfo{}, err
-	}
+// 	parsed, err := parseS3URI(filePath)
+// 	if err != nil {
+// 		return FileInfo{}, err
+// 	}
 
-	params := &s3.ListObjectsInput{
-		Bucket: aws.String(parsed.Hostname()),
-		Prefix: aws.String(parsed.Path),
-	}
-	result, err := s.s3Client.ListObjects(params)
-	if err != nil {
-		return FileInfo{}, err
-	}
+// 	params := &s3.ListObjectsInput{
+// 		Bucket: aws.String(parsed.Hostname()),
+// 		Prefix: aws.String(parsed.Path),
+// 	}
+// 	result, err := s.s3Client.ListObjects(params)
+// 	if err != nil {
+// 		return FileInfo{}, err
+// 	}
 
-	for _, object := range result.Contents {
-		if *object.Key == parsed.Path {
-			s.objectCache.Add(filePath, object)
-			return FileInfo{
-				Name: filePath,
-				Size: *object.Size,
-			}, nil
-		}
-	}
+// 	for _, object := range result.Contents {
+// 		if *object.Key == parsed.Path {
+// 			s.objectCache.Add(filePath, object)
+// 			return FileInfo{
+// 				Name: filePath,
+// 				Size: *object.Size,
+// 			}, nil
+// 		}
+// 	}
 
-	return FileInfo{}, errors.New("No file with given filename")
-}
+// 	return FileInfo{}, errors.New("No file with given filename")
+// }
 
 // Init initializes the filesystem.
 func (s *S3FileSystem) Init() error {
