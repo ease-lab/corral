@@ -8,8 +8,8 @@ import (
 	"os"
 	"sync/atomic"
 
-	tracing "github.com/ease-lab/vhive/utils/tracing/go"
 	log "github.com/sirupsen/logrus"
+	tracing "github.com/vhive-serverless/vSwarm/utils/tracing/go"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
