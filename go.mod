@@ -3,7 +3,7 @@ module github.com/bcongdon/corral
 go 1.18
 
 require (
-	github.com/aws/aws-lambda-go v1.25.0
+	github.com/aws/aws-lambda-go v1.34.1
 	github.com/aws/aws-sdk-go v1.40.7
 	github.com/dustin/go-humanize v1.0.0
 	github.com/hashicorp/golang-lru v0.5.4
