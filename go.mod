@@ -15,8 +15,8 @@ require (
 	github.com/vhive-serverless/vSwarm/utils/tracing/go v0.0.0-20221114010759-4b33d106fe5b
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.33.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	google.golang.org/grpc v1.48.0
-	google.golang.org/protobuf v1.28.0
+	google.golang.org/grpc v1.52.3
+	google.golang.org/protobuf v1.28.1
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 )
 
@@ -44,10 +44,10 @@ require (
 	go.opentelemetry.io/otel/exporters/zipkin v1.8.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.8.0 // indirect
 	go.opentelemetry.io/otel/trace v1.11.1 // indirect
-	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
-	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
-	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/genproto v0.0.0-20220722212130-b98a9ff5e252 // indirect
+	golang.org/x/net v0.4.0 // indirect
+	golang.org/x/sys v0.3.0 // indirect
+	golang.org/x/text v0.5.0 // indirect
+	google.golang.org/genproto v0.0.0-20221118155620-16455021b5e6 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
