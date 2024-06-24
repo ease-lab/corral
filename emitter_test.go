@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"strings"
 	"sync"
@@ -79,30 +78,38 @@ func (m *mockFs) ListFiles(string) ([]corfs.FileInfo, error) {
 	return []corfs.FileInfo{}, nil
 }
 
-func (m *mockFs) OpenReader(filePath string, startAt int64) (io.ReadCloser, error) {
-	return ioutil.NopCloser(new(bytes.Buffer)), nil
+// func (m *mockFs) OpenReader(filePath string, startAt int64) (io.ReadCloser, error) {
+// 	return ioutil.NopCloser(new(bytes.Buffer)), nil
+// }
+
+func (m *mockFs) ReadFile(filePath string, startAt int64) ([]byte, error) {
+	return []byte(""), nil
 }
 
-func (m *mockFs) OpenWriter(filePath string) (io.WriteCloser, error) {
-	if _, ok := m.writers[filePath]; !ok {
-		buf := new(bytes.Buffer)
-		m.writers[filePath] = &testWriteCloser{buf}
-	}
-	return m.writers[filePath], nil
+// func (m *mockFs) OpenWriter(filePath string) (io.WriteCloser, error) {
+// 	if _, ok := m.writers[filePath]; !ok {
+// 		buf := new(bytes.Buffer)
+// 		m.writers[filePath] = &testWriteCloser{buf}
+// 	}
+// 	return m.writers[filePath], nil
+// }
+
+func (m *mockFs) WriteFile(filePath string, contents []byte) error {
+	return nil
 }
 
-func (m *mockFs) Stat(filePath string) (corfs.FileInfo, error) {
-	return corfs.FileInfo{
-		Name: filePath,
-		Size: 0,
-	}, nil
-}
+// func (m *mockFs) Stat(filePath string) (corfs.FileInfo, error) {
+// 	return corfs.FileInfo{
+// 		Name: filePath,
+// 		Size: 0,
+// 	}, nil
+// }
 
 func (m *mockFs) Init() error { return nil }
 
 func (m *mockFs) Join(e ...string) string { return strings.Join(e, "/") }
 
-func (m *mockFs) Delete(string) error { return nil }
+// func (m *mockFs) Delete(string) error { return nil }
 
 func TestMapperEmitter(t *testing.T) {
 	mFs := &mockFs{writers: make(map[string]*testWriteCloser)}

@@ -1,13 +1,12 @@
 package corral
 
 import (
+	"bytes"
 	context "context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"hash/fnv"
 	"io"
-	"strings"
 	"sync"
 
 	"github.com/bcongdon/corral/internal/pkg/corfs"
@@ -23,13 +22,13 @@ type Emitter interface {
 
 // reducerEmitter is a threadsafe emitter.
 type reducerEmitter struct {
-	writer       io.WriteCloser
+	writer       io.Writer
 	mut          *sync.Mutex
 	writtenBytes int64
 }
 
 // newReducerEmitter initializes and returns a new reducerEmitter
-func newReducerEmitter(writer io.WriteCloser) *reducerEmitter {
+func newReducerEmitter(writer io.Writer) *reducerEmitter {
 	return &reducerEmitter{
 		writer: writer,
 		mut:    &sync.Mutex{},
@@ -48,7 +47,8 @@ func (e *reducerEmitter) Emit(ctx context.Context, key, value string) error {
 
 // close terminates the reducerEmitter. close must not be called more than once
 func (e *reducerEmitter) close() error {
-	return e.writer.Close()
+	// return e.writer.Close()
+	return nil
 }
 
 func (e *reducerEmitter) bytesWritten() int64 {
@@ -59,20 +59,21 @@ func (e *reducerEmitter) bytesWritten() int64 {
 // mapperEmitter maintains a map of writers. Keys are partitioned into one of numBins
 // intermediate "shuffle" bins. Each bin is written as a separate file.
 type mapperEmitter struct {
-	numBins       uint                    // number of intermediate shuffle bins
-	writers       map[uint]io.WriteCloser // maps a parition number to an open writer
-	fs            corfs.FileSystem        // filesystem to use when opening writers
-	mapperID      uint                    // numeric identifier of the mapper using this emitter
-	outDir        string                  // folder to save map output to
-	partitionFunc PartitionFunc           // PartitionFunc to use when partitioning map output keys into intermediate bins
-	writtenBytes  int64                   // counter for number of bytes written from emitted key/val pairs
+	numBins uint // number of intermediate shuffle bins
+	// writers       map[uint]io.WriteCloser // maps a parition number to an open writer
+	buffers       map[uint]*bytes.Buffer
+	fs            corfs.FileSystem // filesystem to use when opening writers
+	mapperID      uint             // numeric identifier of the mapper using this emitter
+	outDir        string           // folder to save map output to
+	partitionFunc PartitionFunc    // PartitionFunc to use when partitioning map output keys into intermediate bins
+	writtenBytes  int64            // counter for number of bytes written from emitted key/val pairs
 }
 
 // Initializes a new mapperEmitter
 func newMapperEmitter(numBins uint, mapperID uint, outDir string, fs corfs.FileSystem) mapperEmitter {
 	return mapperEmitter{
 		numBins:       numBins,
-		writers:       make(map[uint]io.WriteCloser, numBins),
+		buffers:       make(map[uint]*bytes.Buffer, numBins),
 		fs:            fs,
 		mapperID:      mapperID,
 		outDir:        outDir,
@@ -91,17 +92,19 @@ func hashPartition(key string, numBins uint) uint {
 func (me *mapperEmitter) Emit(ctx context.Context, key, value string) error {
 	bin := me.partitionFunc(key, me.numBins)
 
-	// Open writer for the bin, if necessary
-	writer, exists := me.writers[bin]
+	// Open buffer for the bin, if necessary
+	buffer, exists := me.buffers[bin]
 	if !exists {
-		var err error
-		path := me.fs.Join(me.outDir, fmt.Sprintf("map-bin%d-%d.out", bin, me.mapperID))
+		// var err error
+		// path := me.fs.Join(me.outDir, fmt.Sprintf("map-bin%d-%d.out", bin, me.mapperID))
 
-		writer, err = me.fs.OpenWriter(path)
-		if err != nil {
-			return err
-		}
-		me.writers[bin] = writer
+		// writer, err = me.fs.OpenWriter(path)
+		// if err != nil {
+		// 	return err
+		// }
+		// me.writers[bin] = writer
+		buffer = new(bytes.Buffer)
+		me.buffers[bin] = new(bytes.Buffer)
 	}
 
 	kv := keyValue{
@@ -116,22 +119,22 @@ func (me *mapperEmitter) Emit(ctx context.Context, key, value string) error {
 	}
 
 	data = append(data, '\n')
-	_, err = writer.Write(data)
+	_, err = buffer.Write(data)
 	return err
 }
 
 // close terminates the mapperEmitter. Must not be called more than once
 func (me *mapperEmitter) close() error {
-	errs := make([]string, 0)
-	for _, writer := range me.writers {
-		err := writer.Close()
-		if err != nil {
-			errs = append(errs, err.Error())
-		}
-	}
-	if len(errs) > 0 {
-		return errors.New(strings.Join(errs, "\n"))
-	}
+	// errs := make([]string, 0)
+	// for _, writer := range me.writers {
+	// 	err := writer.Close()
+	// 	if err != nil {
+	// 		errs = append(errs, err.Error())
+	// 	}
+	// }
+	// if len(errs) > 0 {
+	// 	return errors.New(strings.Join(errs, "\n"))
+	// }
 
 	return nil
 }

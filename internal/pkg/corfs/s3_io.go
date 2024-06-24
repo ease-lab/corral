@@ -1,122 +1,113 @@
 package corfs
 
-import (
-	"fmt"
-	"io"
+// type s3Writer struct {
+// 	client          *s3.S3
+// 	bucket          string
+// 	key             string
+// 	buf             *filebuffer.Buffer
+// 	uploadChunkSize int64
+// 	uploadID        string
+// 	complatedParts  []*s3.CompletedPart
+// }
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/mattetti/filebuffer"
-)
+// func (s *s3Writer) Init() error {
+// 	params := &s3.CreateMultipartUploadInput{
+// 		Bucket: aws.String(s.bucket),
+// 		Key:    aws.String(s.key),
+// 	}
+// 	result, err := s.client.CreateMultipartUpload(params)
 
-type s3Writer struct {
-	client          *s3.S3
-	bucket          string
-	key             string
-	buf             *filebuffer.Buffer
-	uploadChunkSize int64
-	uploadID        string
-	complatedParts  []*s3.CompletedPart
-}
+// 	if result != nil {
+// 		s.uploadID = *result.UploadId
+// 	}
+// 	return err
+// }
 
-func (s *s3Writer) Init() error {
-	params := &s3.CreateMultipartUploadInput{
-		Bucket: aws.String(s.bucket),
-		Key:    aws.String(s.key),
-	}
-	result, err := s.client.CreateMultipartUpload(params)
+// func (s *s3Writer) uploadChunk() error {
+// 	if _, err := s.buf.Seek(0, io.SeekStart); err != nil {
+// 		return err
+// 	}
+// 	partNumber := int64(len(s.complatedParts) + 1)
 
-	if result != nil {
-		s.uploadID = *result.UploadId
-	}
-	return err
-}
+// 	uploadParams := &s3.UploadPartInput{
+// 		Bucket:     aws.String(s.bucket),
+// 		Key:        aws.String(s.key),
+// 		UploadId:   aws.String(s.uploadID),
+// 		Body:       s.buf,
+// 		PartNumber: aws.Int64(partNumber),
+// 	}
+// 	result, err := s.client.UploadPart(uploadParams)
+// 	if result != nil {
+// 		s.complatedParts = append(s.complatedParts, &s3.CompletedPart{
+// 			ETag:       result.ETag,
+// 			PartNumber: aws.Int64(partNumber),
+// 		})
+// 	}
 
-func (s *s3Writer) uploadChunk() error {
-	if _, err := s.buf.Seek(0, io.SeekStart); err != nil {
-		return err
-	}
-	partNumber := int64(len(s.complatedParts) + 1)
+// 	// Reset buffer
+// 	s.buf = filebuffer.New(nil)
 
-	uploadParams := &s3.UploadPartInput{
-		Bucket:     aws.String(s.bucket),
-		Key:        aws.String(s.key),
-		UploadId:   aws.String(s.uploadID),
-		Body:       s.buf,
-		PartNumber: aws.Int64(partNumber),
-	}
-	result, err := s.client.UploadPart(uploadParams)
-	if result != nil {
-		s.complatedParts = append(s.complatedParts, &s3.CompletedPart{
-			ETag:       result.ETag,
-			PartNumber: aws.Int64(partNumber),
-		})
-	}
+// 	return err
+// }
 
-	// Reset buffer
-	s.buf = filebuffer.New(nil)
+// func (s *s3Writer) Write(p []byte) (n int, err error) {
+// 	n, err = s.buf.Write(p)
+// 	if int64(len(s.buf.Bytes())) > s.uploadChunkSize {
+// 		err = s.uploadChunk()
+// 	}
+// 	return n, err
+// }
 
-	return err
-}
+// func (s *s3Writer) Close() error {
+// 	if err := s.uploadChunk(); err != nil {
+// 		return err
+// 	}
 
-func (s *s3Writer) Write(p []byte) (n int, err error) {
-	n, err = s.buf.Write(p)
-	if int64(len(s.buf.Bytes())) > s.uploadChunkSize {
-		err = s.uploadChunk()
-	}
-	return n, err
-}
+// 	completeParams := &s3.CompleteMultipartUploadInput{
+// 		Bucket:   aws.String(s.bucket),
+// 		Key:      aws.String(s.key),
+// 		UploadId: aws.String(s.uploadID),
+// 		MultipartUpload: &s3.CompletedMultipartUpload{
+// 			Parts: s.complatedParts,
+// 		},
+// 	}
 
-func (s *s3Writer) Close() error {
-	if err := s.uploadChunk(); err != nil {
-		return err
-	}
+// 	_, err := s.client.CompleteMultipartUpload(completeParams)
+// 	return err
+// }
 
-	completeParams := &s3.CompleteMultipartUploadInput{
-		Bucket:   aws.String(s.bucket),
-		Key:      aws.String(s.key),
-		UploadId: aws.String(s.uploadID),
-		MultipartUpload: &s3.CompletedMultipartUpload{
-			Parts: s.complatedParts,
-		},
-	}
+// type s3Reader struct {
+// 	client    *s3.S3
+// 	bucket    string
+// 	key       string
+// 	offset    int64
+// 	chunkSize int64
+// 	chunk     io.ReadCloser
+// 	totalSize int64
+// }
 
-	_, err := s.client.CompleteMultipartUpload(completeParams)
-	return err
-}
+// func (s *s3Reader) loadNextChunk() error {
+// 	size := min64(s.chunkSize, s.totalSize-s.offset)
+// 	params := &s3.GetObjectInput{
+// 		Bucket: aws.String(s.bucket),
+// 		Key:    aws.String(s.key),
+// 		Range:  aws.String(fmt.Sprintf("bytes=%d-%d", s.offset, s.offset+size-1)),
+// 	}
+// 	s.offset += size
+// 	output, err := s.client.GetObject(params)
+// 	s.chunk = output.Body
+// 	return err
+// }
 
-type s3Reader struct {
-	client    *s3.S3
-	bucket    string
-	key       string
-	offset    int64
-	chunkSize int64
-	chunk     io.ReadCloser
-	totalSize int64
-}
+// func (s *s3Reader) Read(b []byte) (n int, err error) {
+// 	n, err = s.chunk.Read(b)
+// 	if err == io.EOF && s.offset != s.totalSize {
+// 		s.chunk.Close()
+// 		err = s.loadNextChunk()
+// 	}
+// 	return n, err
+// }
 
-func (s *s3Reader) loadNextChunk() error {
-	size := min64(s.chunkSize, s.totalSize-s.offset)
-	params := &s3.GetObjectInput{
-		Bucket: aws.String(s.bucket),
-		Key:    aws.String(s.key),
-		Range:  aws.String(fmt.Sprintf("bytes=%d-%d", s.offset, s.offset+size-1)),
-	}
-	s.offset += size
-	output, err := s.client.GetObject(params)
-	s.chunk = output.Body
-	return err
-}
-
-func (s *s3Reader) Read(b []byte) (n int, err error) {
-	n, err = s.chunk.Read(b)
-	if err == io.EOF && s.offset != s.totalSize {
-		s.chunk.Close()
-		err = s.loadNextChunk()
-	}
-	return n, err
-}
-
-func (s *s3Reader) Close() error {
-	return s.chunk.Close()
-}
+// func (s *s3Reader) Close() error {
+// 	return s.chunk.Close()
+// }

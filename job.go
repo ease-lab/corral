@@ -2,6 +2,7 @@ package corral
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -65,12 +66,17 @@ func splitInputRecord(record string) *keyValue {
 
 // runMapperSplit runs the mapper on a single inputSplit
 func (j *Job) runMapperSplit(ctx context.Context, split inputSplit, emitter Emitter) error {
-	inputSource, err := j.fileSystem.OpenReader(split.Filename, split.StartOffset)
+	// inputSource, err := j.fileSystem.OpenReader(split.Filename, split.StartOffset)
+	// if err != nil {
+	// 	return err
+	// }
+	input, err := j.fileSystem.ReadFile(split.Filename, split.StartOffset)
 	if err != nil {
 		return err
 	}
 
-	scanner := bufio.NewScanner(inputSource)
+	// scanner := bufio.NewScanner(inputSource)
+	scanner := bufio.NewScanner(bytes.NewReader(input))
 	var bytesRead int64
 	splitter := countingSplitFunc(bufio.ScanLines, &bytesRead)
 	scanner.Split(splitter)
@@ -107,21 +113,28 @@ func (j *Job) runReducer(ctx context.Context, binID uint) error {
 
 	// Open emitter for output data
 	path = j.fileSystem.Join(j.outputPath, fmt.Sprintf("output-part-%d", binID))
-	emitWriter, err := j.fileSystem.OpenWriter(path)
-	if err != nil {
-		return err
-	}
-	defer emitWriter.Close()
+	// emitWriter, err := j.fileSystem.OpenWriter(path)
+	// if err != nil {
+	// 	return err
+	// }
+	// defer emitWriter.Close()
+	buffer := new(bytes.Buffer)
 
 	data := make(map[string][]string)
 	var bytesRead int64
 
 	for _, file := range files {
-		reader, err := j.fileSystem.OpenReader(file.Name, 0)
-		bytesRead += file.Size
+		// reader, err := j.fileSystem.OpenReader(file.Name, 0)
+		// bytesRead += file.Size
+		// if err != nil {
+		// 	return err
+		// }
+		fileContent, err := j.fileSystem.ReadFile(file.Name, 0)
+		bytesRead += int64(len(fileContent))
 		if err != nil {
 			return err
 		}
+		reader := bytes.NewReader(fileContent)
 
 		// Feed intermediate data into reducers
 		decoder := json.NewDecoder(reader)
@@ -137,21 +150,21 @@ func (j *Job) runReducer(ctx context.Context, binID uint) error {
 
 			data[kv.Key] = append(data[kv.Key], kv.Value)
 		}
-		reader.Close()
+		// reader.Close()
 
 		// Delete intermediate map data
-		if j.config.Cleanup {
-			err := j.fileSystem.Delete(file.Name)
-			if err != nil {
-				log.Error(err)
-			}
-		}
+		// if j.config.Cleanup {
+		// 	err := j.fileSystem.Delete(file.Name)
+		// 	if err != nil {
+		// 		log.Error(err)
+		// 	}
+		// }
 	}
 
 	var waitGroup sync.WaitGroup
 	sem := semaphore.NewWeighted(10)
 
-	emitter := newReducerEmitter(emitWriter)
+	emitter := newReducerEmitter(buffer)
 	for key, values := range data {
 		if err := sem.Acquire(ctx, 1); err != nil {
 			return fmt.Errorf("failed to run reducer: failed to acquire semaphore: %s", err)
@@ -181,38 +194,32 @@ func (j *Job) runReducer(ctx context.Context, binID uint) error {
 	atomic.AddInt64(&j.bytesWritten, emitter.bytesWritten())
 	atomic.AddInt64(&j.bytesRead, bytesRead)
 
-	return nil
+	return j.fileSystem.WriteFile(path, buffer.Bytes())
 }
 
 // inputSplits calculates all input files' inputSplits.
 // inputSplits also determines and saves the number of intermediate bins that will be used during the shuffle.
 func (j *Job) inputSplits(inputs []string, maxSplitSize int64) []inputSplit {
-	files := make([]string, 0)
+	fileInfos := make([]corfs.FileInfo, 0)
 	for _, inputPath := range inputs {
-		fileInfos, err := j.fileSystem.ListFiles(inputPath)
+		fileList, err := j.fileSystem.ListFiles(inputPath)
 		if err != nil {
 			log.Warn(err)
 			continue
 		}
 
-		for _, fInfo := range fileInfos {
-			files = append(files, fInfo.Name)
+		for _, fInfo := range fileList {
+			fileInfos = append(fileInfos, fInfo)
 		}
 	}
 
 	splits := make([]inputSplit, 0)
 	var totalSize int64
-	for _, inputFileName := range files {
-		fInfo, err := j.fileSystem.Stat(inputFileName)
-		if err != nil {
-			log.Warnf("Unable to load input file: %s (%s)", inputFileName, err)
-			continue
-		}
-
+	for _, fInfo := range fileInfos {
 		totalSize += fInfo.Size
 		splits = append(splits, splitInputFile(fInfo, maxSplitSize)...)
 	}
-	if len(files) > 0 {
+	if len(fileInfos) > 0 {
 		log.Debugf("Average split size: %s bytes", humanize.Bytes(uint64(totalSize)/uint64(len(splits))))
 	}
 

@@ -1,9 +1,9 @@
 package corfs
 
 import (
-	"errors"
+	"bytes"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/mattetti/filebuffer"
 )
 
 var validS3Schemes = map[string]bool{
@@ -102,82 +101,115 @@ func (s *S3FileSystem) ListFiles(pathGlob string) ([]FileInfo, error) {
 
 // OpenReader opens a reader to the file at filePath. The reader
 // is initially seeked to "startAt" bytes into the file.
-func (s *S3FileSystem) OpenReader(filePath string, startAt int64) (io.ReadCloser, error) {
+// func (s *S3FileSystem) OpenReader(filePath string, startAt int64) (io.ReadCloser, error) {
+// 	parsed, err := parseS3URI(filePath)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	objStat, err := s.Stat(filePath)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	reader := &s3Reader{
+// 		client:    s.s3Client,
+// 		bucket:    parsed.Hostname(),
+// 		key:       parsed.Path,
+// 		offset:    startAt,
+// 		chunkSize: 20 * 1024 * 1024, // 20 Mb chunk size
+// 		totalSize: objStat.Size,
+// 	}
+// 	err = reader.loadNextChunk()
+// 	return reader, err
+// }
+
+// ReadFile reads the file at filePath skipping startAt bytes at the
+// beginning.
+func (s *S3FileSystem) ReadFile(filePath string, startAt int64) ([]byte, error) {
 	parsed, err := parseS3URI(filePath)
 	if err != nil {
 		return nil, err
 	}
-
-	objStat, err := s.Stat(filePath)
+	params := &s3.GetObjectInput{
+		Bucket: aws.String(parsed.Hostname()),
+		Key:    aws.String(parsed.Path),
+		Range:  aws.String(fmt.Sprintf("bytes=%d-", startAt)),
+	}
+	output, err := s.s3Client.GetObject(params)
 	if err != nil {
 		return nil, err
 	}
-
-	reader := &s3Reader{
-		client:    s.s3Client,
-		bucket:    parsed.Hostname(),
-		key:       parsed.Path,
-		offset:    startAt,
-		chunkSize: 20 * 1024 * 1024, // 20 Mb chunk size
-		totalSize: objStat.Size,
-	}
-	err = reader.loadNextChunk()
-	return reader, err
+	return ioutil.ReadAll(output.Body)
 }
 
 // OpenWriter opens a writer to the file at filePath.
-func (s *S3FileSystem) OpenWriter(filePath string) (io.WriteCloser, error) {
+// func (s *S3FileSystem) OpenWriter(filePath string) (io.WriteCloser, error) {
+// 	parsed, err := parseS3URI(filePath)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	writer := &s3Writer{
+// 		client:         s.s3Client,
+// 		bucket:         parsed.Hostname(),
+// 		key:            parsed.Path,
+// 		buf:            filebuffer.New(nil),
+// 		complatedParts: []*s3.CompletedPart{},
+// 	}
+// 	err = writer.Init()
+// 	return writer, err
+// }
+
+func (s *S3FileSystem) WriteFile(filePath string, contents []byte) error {
 	parsed, err := parseS3URI(filePath)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	writer := &s3Writer{
-		client:         s.s3Client,
-		bucket:         parsed.Hostname(),
-		key:            parsed.Path,
-		buf:            filebuffer.New(nil),
-		complatedParts: []*s3.CompletedPart{},
+	params := &s3.PutObjectInput{
+		Bucket: aws.String(parsed.Hostname()),
+		Key:    aws.String(parsed.Path),
+		Body:   bytes.NewReader(contents),
 	}
-	err = writer.Init()
-	return writer, err
+	_, err = s.s3Client.PutObject(params)
+	return err
 }
 
 // Stat returns information about the file at filePath.
-func (s *S3FileSystem) Stat(filePath string) (FileInfo, error) {
-	if object, exists := s.objectCache.Get(filePath); exists {
-		return FileInfo{
-			Name: filePath,
-			Size: *object.(*s3.Object).Size,
-		}, nil
-	}
+// func (s *S3FileSystem) Stat(filePath string) (FileInfo, error) {
+// 	if object, exists := s.objectCache.Get(filePath); exists {
+// 		return FileInfo{
+// 			Name: filePath,
+// 			Size: *object.(*s3.Object).Size,
+// 		}, nil
+// 	}
 
-	parsed, err := parseS3URI(filePath)
-	if err != nil {
-		return FileInfo{}, err
-	}
+// 	parsed, err := parseS3URI(filePath)
+// 	if err != nil {
+// 		return FileInfo{}, err
+// 	}
 
-	params := &s3.ListObjectsInput{
-		Bucket: aws.String(parsed.Hostname()),
-		Prefix: aws.String(parsed.Path),
-	}
-	result, err := s.s3Client.ListObjects(params)
-	if err != nil {
-		return FileInfo{}, err
-	}
+// 	params := &s3.ListObjectsInput{
+// 		Bucket: aws.String(parsed.Hostname()),
+// 		Prefix: aws.String(parsed.Path),
+// 	}
+// 	result, err := s.s3Client.ListObjects(params)
+// 	if err != nil {
+// 		return FileInfo{}, err
+// 	}
 
-	for _, object := range result.Contents {
-		if *object.Key == parsed.Path {
-			s.objectCache.Add(filePath, object)
-			return FileInfo{
-				Name: filePath,
-				Size: *object.Size,
-			}, nil
-		}
-	}
+// 	for _, object := range result.Contents {
+// 		if *object.Key == parsed.Path {
+// 			s.objectCache.Add(filePath, object)
+// 			return FileInfo{
+// 				Name: filePath,
+// 				Size: *object.Size,
+// 			}, nil
+// 		}
+// 	}
 
-	return FileInfo{}, errors.New("No file with given filename")
-}
+// 	return FileInfo{}, errors.New("No file with given filename")
+// }
 
 // Init initializes the filesystem.
 func (s *S3FileSystem) Init() error {
@@ -194,19 +226,19 @@ func (s *S3FileSystem) Init() error {
 }
 
 // Delete deletes the file at filePath.
-func (s *S3FileSystem) Delete(filePath string) error {
-	parsed, err := parseS3URI(filePath)
-	if err != nil {
-		return err
-	}
+// func (s *S3FileSystem) Delete(filePath string) error {
+// 	parsed, err := parseS3URI(filePath)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	params := &s3.DeleteObjectInput{
-		Bucket: aws.String(parsed.Hostname()),
-		Key:    aws.String(parsed.Path),
-	}
-	_, err = s.s3Client.DeleteObject(params)
-	return err
-}
+// 	params := &s3.DeleteObjectInput{
+// 		Bucket: aws.String(parsed.Hostname()),
+// 		Key:    aws.String(parsed.Path),
+// 	}
+// 	_, err = s.s3Client.DeleteObject(params)
+// 	return err
+// }
 
 // Join joins file path elements
 func (s *S3FileSystem) Join(elem ...string) string {

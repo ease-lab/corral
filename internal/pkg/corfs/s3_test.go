@@ -26,13 +26,13 @@ func getS3TestBackend(t *testing.T) (string, *S3FileSystem) {
 
 func cleanup(backend *S3FileSystem, t *testing.T) {
 	bucket := os.Getenv("AWS_TEST_BUCKET")
-	objects, err := backend.ListFiles("s3://" + bucket + "/")
+	_, err := backend.ListFiles("s3://" + bucket + "/")
 
 	assert.Nil(t, err)
-	for _, obj := range objects {
-		err = backend.Delete(obj.Name)
-		assert.Nil(t, err)
-	}
+	// for _, obj := range objects {
+	// 	err = backend.Delete(obj.Name)
+	// 	assert.Nil(t, err)
+	// }
 }
 
 func TestS3ImplementsFileSystem(t *testing.T) {
@@ -49,24 +49,28 @@ func TestS3ReaderWriter(t *testing.T) {
 	path := bucket + "/testobj"
 
 	// Test writer
-	writer, err := backend.OpenWriter(path)
-	assert.Nil(t, err)
+	// writer, err := backend.OpenWriter(path)
+	// assert.Nil(t, err)
 
-	_, err = writer.Write([]byte("foo bar baz"))
-	assert.Nil(t, err)
+	// _, err = writer.Write([]byte("foo bar baz"))
+	// assert.Nil(t, err)
 
-	err = writer.Close()
-	assert.Nil(t, err)
+	// err = writer.Close()
+	// assert.Nil(t, err)
+	assert.Nil(t, backend.WriteFile(path, []byte("foo bar baz")))
 
 	// Test reader starting at beginning of file
-	reader, err := backend.OpenReader(path, 0)
+	// reader, err := backend.OpenReader(path, 0)
+	// assert.Nil(t, err)
+
+	// contents, err := ioutil.ReadAll(reader)
+	// assert.Nil(t, err)
+	contents, err := backend.ReadFile(path, 0)
 	assert.Nil(t, err)
 
-	contents, err := ioutil.ReadAll(reader)
-	assert.Nil(t, err)
 	assert.Equal(t, "foo bar baz", string(contents))
 
-	err = reader.Close()
+	// err = reader.Close()
 	assert.Nil(t, err)
 }
 
@@ -77,24 +81,28 @@ func TestS3ReaderWriterWithOffset(t *testing.T) {
 	path := bucket + "/testobj"
 
 	// Test writer
-	writer, err := backend.OpenWriter(path)
-	assert.Nil(t, err)
+	// writer, err := backend.OpenWriter(path)
+	// assert.Nil(t, err)
 
-	_, err = writer.Write([]byte("foo bar baz"))
-	assert.Nil(t, err)
+	// _, err = writer.Write([]byte("foo bar baz"))
+	// assert.Nil(t, err)
 
-	err = writer.Close()
-	assert.Nil(t, err)
+	// err = writer.Close()
+	// assert.Nil(t, err)
+	assert.Nil(t, backend.WriteFile(path, []byte("foo bar baz")))
 
 	// Test reader starting in middle of file
-	reader, err := backend.OpenReader(path, 4)
+	// reader, err := backend.OpenReader(path, 4)
+	// assert.Nil(t, err)
+
+	// contents, err := ioutil.ReadAll(reader)
+	// assert.Nil(t, err)
+	contents, err := backend.ReadFile(path, 4)
 	assert.Nil(t, err)
 
-	contents, err := ioutil.ReadAll(reader)
-	assert.Nil(t, err)
 	assert.Equal(t, "bar baz", string(contents))
 
-	err = reader.Close()
+	// err = reader.Close()
 	assert.Nil(t, err)
 }
 
@@ -104,13 +112,14 @@ func TestS3ListFiles(t *testing.T) {
 
 	for i := 0; i < 5; i++ {
 		fName := fmt.Sprintf("file%d", i)
-		writer, err := backend.OpenWriter(bucket + "/" + fName)
-		assert.Nil(t, err)
+		// writer, err := backend.OpenWriter(bucket + "/" + fName)
+		// assert.Nil(t, err)
 
-		_, err = writer.Write([]byte(fName))
-		assert.Nil(t, err)
-		err = writer.Close()
-		assert.Nil(t, err)
+		// _, err = writer.Write([]byte(fName))
+		// assert.Nil(t, err)
+		// err = writer.Close()
+		// assert.Nil(t, err)
+		assert.Nil(t, backend.WriteFile(bucket+"/"+fName, []byte(fName)))
 	}
 
 	files, err := backend.ListFiles(bucket)
@@ -131,13 +140,14 @@ func TestS3ListGlob(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		fName := fmt.Sprintf("foo/file%d", i)
-		writer, err := backend.OpenWriter(bucket + "/" + fName)
-		assert.Nil(t, err)
+		// writer, err := backend.OpenWriter(bucket + "/" + fName)
+		// assert.Nil(t, err)
 
-		_, err = writer.Write([]byte(fName))
-		assert.Nil(t, err)
-		err = writer.Close()
-		assert.Nil(t, err)
+		// _, err = writer.Write([]byte(fName))
+		// assert.Nil(t, err)
+		// err = writer.Close()
+		// assert.Nil(t, err)
+		assert.Nil(t, backend.WriteFile(bucket+"/"+fName, []byte(fName)))
 	}
 
 	files, err := backend.ListFiles(bucket + "/foo/*")
@@ -152,26 +162,26 @@ func TestS3ListGlob(t *testing.T) {
 	}
 }
 
-func TestS3Stat(t *testing.T) {
-	bucket, backend := getS3TestBackend(t)
-	defer cleanup(backend, t)
+// func TestS3Stat(t *testing.T) {
+// 	bucket, backend := getS3TestBackend(t)
+// 	defer cleanup(backend, t)
 
-	path := bucket + "/testobj"
+// 	path := bucket + "/testobj"
 
-	writer, err := backend.OpenWriter(path)
-	assert.Nil(t, err)
+// 	writer, err := backend.OpenWriter(path)
+// 	assert.Nil(t, err)
 
-	_, err = writer.Write([]byte("foo bar baz"))
-	assert.Nil(t, err)
-	err = writer.Close()
-	assert.Nil(t, err)
+// 	_, err = writer.Write([]byte("foo bar baz"))
+// 	assert.Nil(t, err)
+// 	err = writer.Close()
+// 	assert.Nil(t, err)
 
-	file, err := backend.Stat(path)
-	assert.Nil(t, err)
+// 	file, err := backend.Stat(path)
+// 	assert.Nil(t, err)
 
-	assert.Equal(t, path, file.Name)
-	assert.Equal(t, int64(11), file.Size)
-}
+// 	assert.Equal(t, path, file.Name)
+// 	assert.Equal(t, int64(11), file.Size)
+// }
 
 func TestS3Join(t *testing.T) {
 	_, backend := getS3TestBackend(t)
@@ -190,14 +200,15 @@ func TestS3ReaderChunk(t *testing.T) {
 	path := bucket + "/testobj"
 
 	// Test writer
-	writer, err := backend.OpenWriter(path)
-	assert.Nil(t, err)
+	// writer, err := backend.OpenWriter(path)
+	// assert.Nil(t, err)
 
-	_, err = writer.Write([]byte("foo bar baz"))
-	assert.Nil(t, err)
+	// _, err = writer.Write([]byte("foo bar baz"))
+	// assert.Nil(t, err)
 
-	err = writer.Close()
-	assert.Nil(t, err)
+	// err = writer.Close()
+	// assert.Nil(t, err)
+	assert.Nil(t, backend.WriteFile(path, []byte("foo bar baz")))
 
 	// Test reader w/ small chunk size
 	reader := &s3Reader{
